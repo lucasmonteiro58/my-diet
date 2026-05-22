@@ -26,7 +26,8 @@ Open [http://localhost:5173](http://localhost:5173).
 2. Add a **Web app** and copy config into `.env`.
 3. **Authentication** → Sign-in method → enable **Google**.
 4. **Firestore** → Create database.
-5. Deploy rules from `firestore.rules` or paste them in the Rules tab.
+5. **Firestore rules** — Firebase Console → Firestore → **Regras** → paste `firestore.rules` → **Publicar**.  
+   Or with Firebase CLI: `firebase deploy --only firestore:rules` (uses `firebase.json`).
 6. Create a composite index if prompted: collection `dietPlans`, fields `userId` (Ascending) + `updatedAt` (Descending).
 
 ### Authorized domains

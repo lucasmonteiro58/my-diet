@@ -1,6 +1,6 @@
 import { Leaf } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { UserMenu } from './UserMenu'
 
 interface AppShellProps {
@@ -9,11 +9,9 @@ interface AppShellProps {
 }
 
 export function AppShell({ children, onImportClick }: AppShellProps) {
-  const location = useLocation()
-
   return (
-    <div className="mx-auto flex min-h-dvh max-w-lg flex-col">
-      <header className="sticky top-0 z-20 border-b border-border/80 bg-surface-elevated/90 px-4 py-3 backdrop-blur-md">
+    <div className="mx-auto flex min-h-dvh max-w-lg flex-col [--app-header-height:3.75rem]">
+      <header className="sticky top-0 z-20 h-(--app-header-height) shrink-0 border-b border-border/80 bg-surface-elevated/90 px-4 py-3 backdrop-blur-md">
         <div className="flex items-center justify-between gap-3">
           <Link to="/" className="flex items-center gap-2">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white shadow-sm">
@@ -29,18 +27,7 @@ export function AppShell({ children, onImportClick }: AppShellProps) {
         </div>
       </header>
 
-      <main className="flex-1 px-4 pb-28 pt-4">{children}</main>
-
-      {location.pathname === '/' && (
-        <nav className="fixed bottom-0 left-0 right-0 z-20 mx-auto max-w-lg border-t border-border bg-surface-elevated/95 px-6 py-3 backdrop-blur-md">
-          <div className="flex justify-around text-xs font-medium text-ink-muted">
-            <Link to="/" className="flex flex-col items-center gap-1 text-brand-700">
-              <Leaf className="h-5 w-5" />
-              Plano
-            </Link>
-          </div>
-        </nav>
-      )}
+      <main className="flex-1 px-4 pb-8 pt-4">{children}</main>
     </div>
   )
 }

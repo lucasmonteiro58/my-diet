@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { formatFirebaseError } from '../lib/firebase-errors'
 import { extractDietJsonFromPdf } from '../lib/gemini'
 import { parseDietPlanJson } from '../lib/import-plan'
 import { canUseCloud, getUserDietPlan, saveDietPlan } from '../services/dietService'
@@ -72,8 +73,11 @@ export function DietProvider({ children }: { children: ReactNode }) {
         if (!cancelled) setPlanState(local)
       } catch (e) {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : 'Erro ao carregar plano')
-          setPlanState(loadLocalPlan())
+          const local = loadLocalPlan()
+          setPlanState(local)
+          if (!local) {
+            setError(formatFirebaseError(e))
+          }
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -129,7 +133,7 @@ export function DietProvider({ children }: { children: ReactNode }) {
         await saveDietPlan(user.uid, plan)
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao salvar')
+      setError(formatFirebaseError(e))
       throw e
     } finally {
       setSaving(false)
