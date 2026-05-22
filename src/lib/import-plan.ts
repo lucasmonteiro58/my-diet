@@ -1,3 +1,4 @@
+import { resolveNutritionistName } from './nutritionist'
 import type { DietPlan, Meal, Menu } from '../types/diet'
 
 function stripJsonFences(text: string): string {
@@ -30,14 +31,26 @@ function normalizeMeals(raw: unknown, menuIndex: number): Meal[] {
   return raw.map((item, mealIndex) => {
     const meal = item as Record<string, unknown>
     const preparations = Array.isArray(meal.preparations)
-      ? meal.preparations.map((prep) => {
+      ? meal.preparations.map((prep, prepIndex) => {
           const p = prep as Record<string, unknown>
+          const mealId = asString(meal.id, `meal-${menuIndex + 1}-${mealIndex + 1}`)
+          const menuId = `menu-${menuIndex + 1}`
           const foods = Array.isArray(p.foods)
-            ? p.foods.map((food) => {
+            ? p.foods.map((food, foodIndex) => {
                 const f = food as Record<string, unknown>
                 return {
+                  id: asString(
+                    f.id,
+                    `food-${menuId}-${mealId}-${prepIndex}-${foodIndex}`,
+                  ),
                   name: asString(f.name),
                   quantity: asString(f.quantity),
+                  ...(f.userEdited === true
+                    ? {
+                        userEdited: true,
+                        editLabel: asString(f.editLabel, 'editado'),
+                      }
+                    : {}),
                 }
               })
             : []
@@ -84,15 +97,20 @@ export function parseDietPlanJson(input: string): DietPlan {
   const data = parsed as Record<string, unknown>
   const macrosRaw = (data.macros ?? {}) as Record<string, unknown>
   const nutritionistRaw = (data.nutritionist ?? {}) as Record<string, unknown>
+  const nutritionistEmail = asString(nutritionistRaw.email)
+  const nutritionistWhatsapp = asString(nutritionistRaw.whatsapp)
 
   const plan: DietPlan = {
     id: crypto.randomUUID(),
     patientName: asString(data.patientName, 'Paciente'),
     date: asString(data.date, new Date().toLocaleDateString('pt-BR')),
     nutritionist: {
-      name: asString(nutritionistRaw.name, 'Nutricionista'),
-      whatsapp: asString(nutritionistRaw.whatsapp),
-      email: asString(nutritionistRaw.email),
+      name: resolveNutritionistName(
+        asString(nutritionistRaw.name),
+        nutritionistEmail,
+      ),
+      whatsapp: nutritionistWhatsapp,
+      email: nutritionistEmail,
     },
     macros: {
       energyKcal: asNumber(macrosRaw.energyKcal),

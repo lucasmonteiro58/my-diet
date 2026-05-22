@@ -16,7 +16,8 @@ import {
   getCurrentUserDietPlan,
   saveDietPlanAsCurrent,
 } from '../services/dietService'
-import type { DietPlan } from '../types/diet'
+import { ensureFoodIds, removeFoodItem, upsertFoodItem } from '../lib/plan-food'
+import type { DietPlan, FoodLocation } from '../types/diet'
 import { useAuth } from './AuthContext'
 
 const LOCAL_KEY = 'my-diet-plan'
@@ -37,6 +38,11 @@ interface DietContextValue {
   importFromPdf: (file: File) => Promise<void>
   savePlan: () => Promise<void>
   setPlan: (plan: DietPlan) => void
+  saveFood: (
+    location: FoodLocation,
+    data: { name: string; quantity: string },
+  ) => Promise<void>
+  removeFood: (location: FoodLocation) => Promise<void>
 }
 
 const DietContext = createContext<DietContextValue | null>(null)
@@ -88,13 +94,29 @@ export function DietProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
 
   const applyPlan = useCallback((next: DietPlan, synced: boolean) => {
-    setPlanState(next)
-    persistLocal(next)
+    const withIds = ensureFoodIds(next)
+    setPlanState(withIds)
+    persistLocal(withIds)
     setCloudSynced(synced)
-    if (synced) persistCloudSyncMeta(next)
+    if (synced) persistCloudSyncMeta(withIds)
     else clearCloudSyncMeta()
     setError(null)
   }, [])
+
+  const commitPlanChange = useCallback(
+    (updater: (current: DietPlan) => DietPlan) => {
+      setPlanState((current) => {
+        if (!current) return current
+        const next = updater(current)
+        persistLocal(next)
+        setCloudSynced(false)
+        clearCloudSyncMeta()
+        setError(null)
+        return next
+      })
+    },
+    [],
+  )
 
   const setPlan = useCallback(
     (next: DietPlan) => {
@@ -210,6 +232,26 @@ export function DietProvider({ children }: { children: ReactNode }) {
     [user, applyPlan, syncToCloud],
   )
 
+  const saveFood = useCallback(
+    async (location: FoodLocation, data: { name: string; quantity: string }) => {
+      commitPlanChange((current) => upsertFoodItem(current, location, data))
+      toast.success(
+        location.foodId ? 'Alimento atualizado' : 'Alimento adicionado',
+        'Alteração salva neste dispositivo.',
+      )
+    },
+    [commitPlanChange],
+  )
+
+  const removeFood = useCallback(
+    async (location: FoodLocation) => {
+      if (!location.foodId) return
+      commitPlanChange((current) => removeFoodItem(current, location))
+      toast.success('Alimento removido', 'Alteração salva neste dispositivo.')
+    },
+    [commitPlanChange],
+  )
+
   const savePlan = useCallback(async () => {
     if (!plan) return
     if (user && canUseCloud()) {
@@ -231,6 +273,8 @@ export function DietProvider({ children }: { children: ReactNode }) {
       importFromPdf,
       savePlan,
       setPlan,
+      saveFood,
+      removeFood,
     }),
     [
       plan,
@@ -242,6 +286,8 @@ export function DietProvider({ children }: { children: ReactNode }) {
       importFromPdf,
       savePlan,
       setPlan,
+      saveFood,
+      removeFood,
     ],
   )
 

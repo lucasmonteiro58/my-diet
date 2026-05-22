@@ -2,6 +2,7 @@ import { LogIn, LogOut, Settings, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { EditModeToggle } from '../settings/EditModeToggle'
 import { ThemeSelector } from '../theme/ThemeSelector'
 import { BottomSheet } from '../ui/BottomSheet'
 
@@ -37,6 +38,7 @@ export function UserMenu({ onImportClick }: UserMenuProps) {
         <BottomSheet open={open} onClose={() => setOpen(false)} ariaLabel="Configurações">
           <div className="flex flex-col px-2 pb-2">
             <ThemeSelector />
+            <EditModeToggle />
             <Link
               to="/login"
               onClick={() => setOpen(false)}
@@ -107,6 +109,7 @@ export function UserMenu({ onImportClick }: UserMenuProps) {
           </div>
 
           <ThemeSelector />
+          <EditModeToggle />
 
           {onImportClick && (
             <button

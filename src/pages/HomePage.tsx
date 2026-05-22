@@ -1,8 +1,9 @@
 import { Check, CloudUpload, Loader2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { DietHeader } from '../components/diet/DietHeader'
 import { MacrosGrid } from '../components/diet/MacrosGrid'
+import { FoodEditSheet, type FoodEditTarget } from '../components/diet/FoodEditSheet'
 import { MealCard } from '../components/diet/MealCard'
 import { MenuTabs } from '../components/diet/MenuTabs'
 import { ImportPlanModal } from '../components/diet/ImportPlanModal'
@@ -12,12 +13,19 @@ import { AppShell } from '../components/layout/AppShell'
 import { Button } from '../components/ui/Button'
 import { useAuth } from '../contexts/AuthContext'
 import { useDiet } from '../contexts/DietContext'
+import { useEditMode } from '../contexts/EditModeContext'
 
 export function HomePage() {
   const { user } = useAuth()
   const { plan, loading, saving, cloudSynced, error, savePlan } = useDiet()
   const [uploadOpen, setUploadOpen] = useState(false)
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
+  const [foodEdit, setFoodEdit] = useState<FoodEditTarget | null>(null)
+  const { enabled: editMode } = useEditMode()
+
+  useEffect(() => {
+    if (!editMode) setFoodEdit(null)
+  }, [editMode])
 
   const activeMenu =
     plan?.menus.find((m) => m.id === (activeMenuId ?? plan.menus[0]?.id)) ??
@@ -66,7 +74,6 @@ export function HomePage() {
     <AppShell onImportClick={() => setUploadOpen(true)}>
       <div className="space-y-6">
         <DietHeader plan={plan} />
-        <MacrosGrid macros={plan.macros} />
 
         <section className="space-y-3">
           <h2 className="text-sm font-bold uppercase tracking-wide text-ink-muted">
@@ -79,9 +86,16 @@ export function HomePage() {
           />
           <div className="space-y-3">
             {activeMenu?.meals.map((meal, idx) => (
-              <MealCard key={meal.id} meal={meal} defaultOpen={idx === 0} />
+              <MealCard
+                key={meal.id}
+                meal={meal}
+                menuId={activeMenu.id}
+                defaultOpen={idx === 0}
+                onEditFood={setFoodEdit}
+              />
             ))}
           </div>
+          <MacrosGrid macros={plan.macros} />
         </section>
 
         <SupplementsSection supplements={plan.supplements} />
@@ -119,6 +133,7 @@ export function HomePage() {
       </div>
 
       <ImportPlanModal open={uploadOpen} onClose={() => setUploadOpen(false)} />
+      <FoodEditSheet target={foodEdit} onClose={() => setFoodEdit(null)} />
     </AppShell>
   )
 }

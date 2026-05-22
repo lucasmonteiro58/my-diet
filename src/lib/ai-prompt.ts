@@ -13,7 +13,7 @@ Brazilian "Plano Alimentar" PDFs from nutritionists use a **4-column table**:
 - **QUANTIDADES**: portion text exactly as written (e.g. "2 colheres de sopa (50g)", "À vontade"). May span 2 lines (e.g. "1 unidade média" + "(80g)" → join as "1 unidade média (80g)").
 
 Sections in order:
-1. Header: patient name, date "Plano Alimentar – DD/MM/YYYY", nutritionist WhatsApp/email.
+1. Header/footer: patient name, date "Plano Alimentar – DD/MM/YYYY", nutritionist **full name**, CRN, WhatsApp, e-mail, logo, signature, stamp, or business-card **images** (read text in photos).
 2. Macro row: Energia (kcal), Carboidratos, Proteínas, Lipídios, Fibras, Peso (kg).
 3. One or more **CARDÁPIO N (subtitle)** blocks (e.g. "CARDÁPIO 1 (Dias de Semana)").
 4. Inside each cardápio: all meals until the next CARDÁPIO or "Suplementação".
@@ -31,7 +31,14 @@ const EXTRACTION_RULES = `## Field mapping
 
 1. **patientName** — line below "Plano Alimentar – date".
 2. **date** — from "Plano Alimentar – DD/MM/YYYY".
-3. **nutritionist** — whatsapp + email from header/footer.
+3. **nutritionist** — object with name, whatsapp, email (all required keys; use "" if missing):
+   - **name** — FULL professional name (not "Nutricionista"). Sources, in order:
+     a) Printed name next to logo, signature, stamp, CRN line, or "Nutricionista responsável"
+     b) Text inside header/footer **images** (photos, scans, business cards)
+     c) E-mail local-part if no printed name: gabrielpaesnutri@gmail.com → "Gabriel Paes" (drop nutri/nutricao suffixes; split joao.silva → João Silva)
+     d) Domain before .com when it is a person brand: nutri.maria.silva@ → only if clearly a name
+   - Never leave name empty if whatsapp or email exists — infer from e-mail as in (c).
+   - **whatsapp** / **email** — copy exactly from PDF; normalize spacing only.
 4. **macros** — numbers only (comma → dot for weight): energyKcal, carbsG, proteinG, lipidsG, fiberG, weightKg.
 5. **menus[]** — one per "CARDÁPIO N (subtitle)":
    - title: "Cardápio N"
@@ -48,7 +55,7 @@ const JSON_SCHEMA = `## JSON schema
 {
   "patientName": "Lucas Monteiro",
   "date": "22/05/2026",
-  "nutritionist": { "name": "", "whatsapp": "(85) 9 8179-4055", "email": "gabrielpaesnutri@gmail.com" },
+  "nutritionist": { "name": "Gabriel Paes", "whatsapp": "(85) 9 8179-4055", "email": "gabrielpaesnutri@gmail.com" },
   "macros": { "energyKcal": 1620, "carbsG": 203, "proteinG": 148, "lipidsG": 24, "fiberG": 26, "weightKg": 66.7 },
   "menus": [
     {
@@ -89,6 +96,7 @@ const QUALITY_CHECK = `## Before responding, verify
 - All CARDÁPIO sections from the PDF are present in menus[].
 - Each meal has correct time and all foods from QUANTIDADES column.
 - Macros match the PDF table (not estimated).
+- nutritionist.name is a real person name (inferred from e-mail if needed), not empty or generic "Nutricionista".
 - JSON is valid and complete.`
 
 /** Prompt for in-app Gemini API — returns JSON only. */

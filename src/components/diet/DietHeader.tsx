@@ -27,6 +27,12 @@ export function DietHeader({ plan }: DietHeaderProps) {
         {plan.date}
       </p>
 
+      {plan.nutritionist.name && plan.nutritionist.name !== 'Nutricionista' && (
+        <p className="mt-2 text-sm text-white/85">
+          Nutricionista: <span className="font-medium">{plan.nutritionist.name}</span>
+        </p>
+      )}
+
       <div className="mt-4 flex flex-wrap gap-2">
         {plan.nutritionist.whatsapp && (
           <a

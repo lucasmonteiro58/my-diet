@@ -8,8 +8,13 @@ export interface Macros {
 }
 
 export interface FoodItem {
+  id: string
   name: string
   quantity: string
+  /** Set when the user changed or added this item */
+  userEdited?: boolean
+  /** Short hint in the list, e.g. "quantidade", "adicionado" */
+  editLabel?: string
 }
 
 export interface MealPreparation {
@@ -54,4 +59,11 @@ export interface DietPlan {
   generalRecommendations: string[]
   createdAt?: string
   updatedAt?: string
+}
+
+export interface FoodLocation {
+  menuId: string
+  mealId: string
+  prepIndex: number
+  foodId?: string
 }
