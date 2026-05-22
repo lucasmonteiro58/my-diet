@@ -10,16 +10,27 @@ import {
 import { formatFirebaseError } from '../lib/firebase-errors'
 import { extractDietJsonFromPdf } from '../lib/gemini'
 import { parseDietPlanJson } from '../lib/import-plan'
-import { canUseCloud, getUserDietPlan, saveDietPlan } from '../services/dietService'
+import {
+  canUseCloud,
+  getCurrentUserDietPlan,
+  saveDietPlanAsCurrent,
+} from '../services/dietService'
 import type { DietPlan } from '../types/diet'
 import { useAuth } from './AuthContext'
 
 const LOCAL_KEY = 'my-diet-plan'
+const CLOUD_SYNC_KEY = 'my-diet-cloud-sync'
+
+interface CloudSyncMeta {
+  planId: string
+  updatedAt: string
+}
 
 interface DietContextValue {
   plan: DietPlan | null
   loading: boolean
   saving: boolean
+  cloudSynced: boolean
   error: string | null
   importFromJson: (json: string) => Promise<void>
   importFromPdf: (file: File) => Promise<void>
@@ -42,42 +53,100 @@ function persistLocal(plan: DietPlan) {
   localStorage.setItem(LOCAL_KEY, JSON.stringify(plan))
 }
 
+function loadCloudSyncMeta(): CloudSyncMeta | null {
+  try {
+    const raw = localStorage.getItem(CLOUD_SYNC_KEY)
+    return raw ? (JSON.parse(raw) as CloudSyncMeta) : null
+  } catch {
+    return null
+  }
+}
+
+function persistCloudSyncMeta(plan: DietPlan) {
+  if (!plan.updatedAt) return
+  const meta: CloudSyncMeta = { planId: plan.id, updatedAt: plan.updatedAt }
+  localStorage.setItem(CLOUD_SYNC_KEY, JSON.stringify(meta))
+}
+
+function clearCloudSyncMeta() {
+  localStorage.removeItem(CLOUD_SYNC_KEY)
+}
+
+function isPlanCloudSynced(plan: DietPlan | null): boolean {
+  if (!plan?.updatedAt) return false
+  const meta = loadCloudSyncMeta()
+  return meta?.planId === plan.id && meta.updatedAt === plan.updatedAt
+}
+
 export function DietProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const [plan, setPlanState] = useState<DietPlan | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [cloudSynced, setCloudSynced] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const setPlan = useCallback((next: DietPlan) => {
+  const applyPlan = useCallback((next: DietPlan, synced: boolean) => {
     setPlanState(next)
     persistLocal(next)
+    setCloudSynced(synced)
+    if (synced) persistCloudSyncMeta(next)
+    else clearCloudSyncMeta()
     setError(null)
   }, [])
+
+  const setPlan = useCallback(
+    (next: DietPlan) => {
+      applyPlan(next, false)
+    },
+    [applyPlan],
+  )
+
+  const syncToCloud = useCallback(
+    async (planToSave: DietPlan): Promise<DietPlan> => {
+      if (!user || !canUseCloud()) return planToSave
+      setSaving(true)
+      setError(null)
+      try {
+        const saved = await saveDietPlanAsCurrent(user.uid, planToSave)
+        applyPlan(saved, true)
+        return saved
+      } catch (e) {
+        setError(formatFirebaseError(e))
+        setCloudSynced(false)
+        throw e
+      } finally {
+        setSaving(false)
+      }
+    },
+    [user, applyPlan],
+  )
 
   useEffect(() => {
     let cancelled = false
 
     async function load() {
       setLoading(true)
+      setError(null)
       try {
         if (user && canUseCloud()) {
-          const cloud = await getUserDietPlan(user.uid)
+          const cloud = await getCurrentUserDietPlan(user.uid)
           if (!cancelled && cloud) {
-            setPlanState(cloud)
-            persistLocal(cloud)
+            applyPlan(cloud, true)
             return
           }
         }
         const local = loadLocalPlan()
-        if (!cancelled) setPlanState(local)
+        if (!cancelled) {
+          setPlanState(local)
+          setCloudSynced(isPlanCloudSynced(local))
+        }
       } catch (e) {
         if (!cancelled) {
           const local = loadLocalPlan()
           setPlanState(local)
-          if (!local) {
-            setError(formatFirebaseError(e))
-          }
+          setCloudSynced(isPlanCloudSynced(local))
+          if (!local) setError(formatFirebaseError(e))
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -88,70 +157,81 @@ export function DietProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true
     }
-  }, [user])
+  }, [user, applyPlan])
 
   const importFromJson = useCallback(
     async (json: string) => {
       setError(null)
+      let parsed: DietPlan
       try {
-        const parsed = parseDietPlanJson(json)
-        setPlan(parsed)
+        parsed = parseDietPlanJson(json)
       } catch (e) {
         const message =
           e instanceof Error ? e.message : 'Não foi possível importar o JSON.'
         setError(message)
         throw e
       }
+      applyPlan(parsed, false)
+      if (user && canUseCloud()) {
+        await syncToCloud(parsed)
+      }
     },
-    [setPlan],
+    [user, applyPlan, syncToCloud],
   )
 
   const importFromPdf = useCallback(
     async (file: File) => {
       setError(null)
+      let parsed: DietPlan
       try {
         const { json } = await extractDietJsonFromPdf(file)
-        const parsed = parseDietPlanJson(json)
-        setPlan(parsed)
+        parsed = parseDietPlanJson(json)
       } catch (e) {
         const message =
           e instanceof Error ? e.message : 'Não foi possível processar o PDF.'
         setError(message)
         throw e
       }
+      applyPlan(parsed, false)
+      if (user && canUseCloud()) {
+        await syncToCloud(parsed)
+      }
     },
-    [setPlan],
+    [user, applyPlan, syncToCloud],
   )
 
   const savePlan = useCallback(async () => {
     if (!plan) return
-    setSaving(true)
-    setError(null)
-    try {
-      persistLocal(plan)
-      if (user && canUseCloud()) {
-        await saveDietPlan(user.uid, plan)
-      }
-    } catch (e) {
-      setError(formatFirebaseError(e))
-      throw e
-    } finally {
-      setSaving(false)
+    if (user && canUseCloud()) {
+      await syncToCloud(plan)
+      return
     }
-  }, [plan, user])
+    persistLocal(plan)
+  }, [plan, user, syncToCloud])
 
   const value = useMemo(
     () => ({
       plan,
       loading,
       saving,
+      cloudSynced,
       error,
       importFromJson,
       importFromPdf,
       savePlan,
       setPlan,
     }),
-    [plan, loading, saving, error, importFromJson, importFromPdf, savePlan, setPlan],
+    [
+      plan,
+      loading,
+      saving,
+      cloudSynced,
+      error,
+      importFromJson,
+      importFromPdf,
+      savePlan,
+      setPlan,
+    ],
   )
 
   return <DietContext.Provider value={value}>{children}</DietContext.Provider>

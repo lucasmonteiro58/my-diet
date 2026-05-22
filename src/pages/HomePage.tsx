@@ -1,4 +1,4 @@
-import { CloudUpload, Loader2 } from 'lucide-react'
+import { Check, CloudUpload, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { DietHeader } from '../components/diet/DietHeader'
@@ -15,7 +15,7 @@ import { useDiet } from '../contexts/DietContext'
 
 export function HomePage() {
   const { user } = useAuth()
-  const { plan, loading, saving, error, savePlan } = useDiet()
+  const { plan, loading, saving, cloudSynced, error, savePlan } = useDiet()
   const [uploadOpen, setUploadOpen] = useState(false)
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
 
@@ -91,24 +91,31 @@ export function HomePage() {
           <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
         )}
 
-        <Button
-          fullWidth
-          variant="outline"
-          disabled={saving}
-          onClick={() => void savePlan()}
-        >
-          {saving ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Salvando...
-            </>
-          ) : (
-            <>
-              <CloudUpload className="h-4 w-4" />
-              {user ? 'Salvar na nuvem' : 'Salvar localmente'}
-            </>
-          )}
-        </Button>
+        {user && cloudSynced && !saving ? (
+          <Button fullWidth variant="secondary" disabled className="cursor-default">
+            <Check className="h-4 w-4" />
+            Salvo na nuvem
+          </Button>
+        ) : (
+          <Button
+            fullWidth
+            variant="outline"
+            disabled={saving}
+            onClick={() => void savePlan()}
+          >
+            {saving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Salvando...
+              </>
+            ) : (
+              <>
+                <CloudUpload className="h-4 w-4" />
+                {user ? 'Salvar na nuvem' : 'Salvar localmente'}
+              </>
+            )}
+          </Button>
+        )}
       </div>
 
       <ImportPlanModal open={uploadOpen} onClose={() => setUploadOpen(false)} />

@@ -28,7 +28,9 @@ Open [http://localhost:5173](http://localhost:5173).
 4. **Firestore** → Create database.
 5. **Firestore rules** — Firebase Console → Firestore → **Regras** → paste `firestore.rules` → **Publicar**.  
    Or with Firebase CLI: `firebase deploy --only firestore:rules` (uses `firebase.json`).
-6. Create a composite index if prompted: collection `dietPlans`, fields `userId` (Ascending) + `updatedAt` (Descending).
+6. Create composite indexes if prompted (Firestore → Indexes):
+   - `dietPlans`: `userId` (Asc) + `current` (Asc)
+   - `dietPlans`: `userId` (Asc) + `createdAt` (Desc)
 
 ### Authorized domains
 

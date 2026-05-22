@@ -1,60 +1,116 @@
 import {
   collection,
   doc,
-  getDoc,
   getDocs,
   limit,
   orderBy,
   query,
   setDoc,
   where,
+  writeBatch,
 } from 'firebase/firestore'
 import { db, isFirebaseConfigured } from '../lib/firebase'
 import type { DietPlan } from '../types/diet'
 
 const PLANS = 'dietPlans'
 
-export async function saveDietPlan(userId: string, plan: DietPlan): Promise<void> {
+export interface StoredDietPlan extends DietPlan {
+  userId: string
+  current: boolean
+}
+
+function planDocId(userId: string, planId: string): string {
+  return `${userId}_${planId}`
+}
+
+function docToPlan(data: Record<string, unknown>): DietPlan {
+  const { userId: _userId, current: _current, ...plan } = data
+  return plan as unknown as DietPlan
+}
+
+function withTimestamps(plan: DietPlan): DietPlan {
+  const now = new Date().toISOString()
+  return {
+    ...plan,
+    createdAt: plan.createdAt ?? now,
+    updatedAt: now,
+  }
+}
+
+async function clearOtherCurrentPlans(
+  userId: string,
+  exceptDocId: string,
+): Promise<void> {
+  if (!db) return
+  const snap = await getDocs(
+    query(
+      collection(db, PLANS),
+      where('userId', '==', userId),
+      where('current', '==', true),
+    ),
+  )
+  const batch = writeBatch(db)
+  let hasWrites = false
+  for (const d of snap.docs) {
+    if (d.id === exceptDocId) continue
+    batch.update(d.ref, { current: false })
+    hasWrites = true
+  }
+  if (hasWrites) await batch.commit()
+}
+
+/** Saves plan to Firestore, marks it current, keeps older plans (current=false). */
+export async function saveDietPlanAsCurrent(
+  userId: string,
+  plan: DietPlan,
+): Promise<DietPlan> {
   if (!db) throw new Error('Firebase not configured')
-  const ref = doc(db, PLANS, `${userId}_${plan.id}`)
+
+  const stamped = withTimestamps(plan)
+  const docId = planDocId(userId, stamped.id)
+  const ref = doc(db, PLANS, docId)
+
+  await clearOtherCurrentPlans(userId, docId)
+
   await setDoc(
     ref,
     {
-      ...plan,
+      ...stamped,
       userId,
-      updatedAt: new Date().toISOString(),
-      createdAt: plan.createdAt ?? new Date().toISOString(),
+      current: true,
     },
     { merge: true },
   )
+
+  return stamped
 }
 
-export async function getUserDietPlan(userId: string): Promise<DietPlan | null> {
+/** Current plan if flagged; otherwise the most recently created. */
+export async function getCurrentUserDietPlan(userId: string): Promise<DietPlan | null> {
   if (!db) return null
-  const q = query(
-    collection(db, PLANS),
-    where('userId', '==', userId),
-    orderBy('updatedAt', 'desc'),
-    limit(1),
+
+  const currentSnap = await getDocs(
+    query(
+      collection(db, PLANS),
+      where('userId', '==', userId),
+      where('current', '==', true),
+      limit(1),
+    ),
   )
-  const snap = await getDocs(q)
-  if (snap.empty) return null
-  const data = snap.docs[0].data()
-  const { userId: _, ...plan } = data
-  return plan as DietPlan
-}
+  if (!currentSnap.empty) {
+    return docToPlan(currentSnap.docs[0].data() as Record<string, unknown>)
+  }
 
-export async function getDietPlanById(
-  userId: string,
-  planId: string,
-): Promise<DietPlan | null> {
-  if (!db) return null
-  const ref = doc(db, PLANS, `${userId}_${planId}`)
-  const snap = await getDoc(ref)
-  if (!snap.exists()) return null
-  const data = snap.data()
-  const { userId: _, ...plan } = data
-  return plan as DietPlan
+  const latestSnap = await getDocs(
+    query(
+      collection(db, PLANS),
+      where('userId', '==', userId),
+      orderBy('createdAt', 'desc'),
+      limit(1),
+    ),
+  )
+  if (latestSnap.empty) return null
+  return docToPlan(latestSnap.docs[0].data() as Record<string, unknown>)
 }
 
 export function canUseCloud(): boolean {
