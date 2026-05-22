@@ -115,7 +115,7 @@ export function ImportPlanModal({ open, onClose }: ImportPlanModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 pt-[max(1rem,var(--safe-top))] pb-[max(1rem,var(--safe-bottom))] sm:items-center">
       <div
         className="flex max-h-[90dvh] w-full max-w-lg flex-col overflow-hidden rounded-3xl bg-surface-elevated shadow-2xl"
         role="dialog"

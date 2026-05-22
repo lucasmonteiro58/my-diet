@@ -8,7 +8,7 @@ interface MenuTabsProps {
 
 export function MenuTabs({ menus, activeId, onChange }: MenuTabsProps) {
   return (
-    <div className="sticky top-(--app-header-height) z-10 -mx-4 bg-surface/95 px-4 py-2 backdrop-blur-md">
+    <div className="sticky top-[var(--app-header-height)] z-10 -mx-4 bg-surface/95 px-4 py-2 backdrop-blur-md">
       <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
       {menus.map((menu) => {
         const active = menu.id === activeId

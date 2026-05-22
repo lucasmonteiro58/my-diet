@@ -10,9 +10,9 @@ interface AppShellProps {
 
 export function AppShell({ children, onImportClick }: AppShellProps) {
   return (
-    <div className="mx-auto flex min-h-dvh max-w-lg flex-col [--app-header-height:3.75rem]">
-      <header className="sticky top-0 z-20 h-(--app-header-height) shrink-0 border-b border-border/80 bg-surface-elevated/90 px-4 py-3 backdrop-blur-md">
-        <div className="flex items-center justify-between gap-3">
+    <div className="mx-auto flex min-h-dvh max-w-lg flex-col">
+      <header className="sticky top-0 z-20 shrink-0 border-b border-border/80 bg-surface-elevated/90 backdrop-blur-md pt-[var(--safe-top)]">
+        <div className="flex h-(--header-bar-height) items-center justify-between gap-3 px-4">
           <Link to="/" className="flex items-center gap-2">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white shadow-sm">
               <Leaf className="h-5 w-5" />
@@ -27,14 +27,16 @@ export function AppShell({ children, onImportClick }: AppShellProps) {
         </div>
       </header>
 
-      <main className="flex-1 px-4 pb-8 pt-4">{children}</main>
+      <main className="flex-1 px-4 pt-4 pb-[max(2rem,var(--safe-bottom))]">
+        {children}
+      </main>
     </div>
   )
 }
 
 export function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-4 py-8">
+    <div className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-4 py-8 pt-[max(2rem,var(--safe-top))] pb-[max(2rem,var(--safe-bottom))]">
       {children}
     </div>
   )
