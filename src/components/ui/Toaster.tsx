@@ -7,8 +7,8 @@ export function Toaster() {
       position="top-center"
       closeButton
       richColors={false}
-      offset={16}
-      mobileOffset={{ top: 'calc(var(--safe-top) + 12px)' }}
+      offset="calc(var(--app-header-height) + 12px)"
+      mobileOffset={{ top: 'calc(var(--app-header-height) + 12px)' }}
       toastOptions={{
         duration: 3500,
         classNames: {
@@ -17,7 +17,7 @@ export function Toaster() {
           title: '!text-sm !font-semibold !text-ink',
           description: '!text-xs !text-ink-muted',
           closeButton:
-            '!border-border !bg-surface-elevated !text-ink-muted hover:!bg-stone-50',
+            '!border-border !bg-stone-100 !text-ink-muted hover:!bg-stone-200',
           success:
             '!border-brand-200 !bg-brand-50 [&_[data-title]]:!text-brand-900',
           error: '!border-red-200 !bg-red-50 [&_[data-title]]:!text-red-900',

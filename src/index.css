@@ -41,8 +41,35 @@
   }
 }
 
-/* Sonner toasts above modals (z-50) */
+/* Sonner: below sticky header, above modals (z-50) */
 [data-sonner-toaster] {
   z-index: 100 !important;
   font-family: var(--font-sans);
+  top: calc(var(--app-header-height) + 12px) !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%);
+  width: min(100% - 2rem, 32rem);
+}
+
+[data-sonner-toast] {
+  position: relative !important;
+  width: 100% !important;
+}
+
+[data-sonner-toast] [data-close-button] {
+  position: absolute !important;
+  top: 0.75rem !important;
+  right: 0.75rem !important;
+  left: auto !important;
+  transform: none !important;
+  border-radius: 9999px !important;
+}
+
+[data-sonner-toast] [data-title] {
+  padding-right: 2rem;
+}
+
+[data-sonner-toast] [data-description] {
+  padding-right: 0.5rem;
 }
