@@ -41,6 +41,8 @@
     --safe-right: env(safe-area-inset-right, 0px);
     --header-bar-height: 3.75rem;
     --app-header-height: calc(var(--header-bar-height) + var(--safe-top));
+    --menu-tabs-height: 5.5rem;
+    --toast-top-offset: calc(var(--app-header-height) + 0.75rem);
 
     --app-surface: #fafaf9;
     --app-surface-elevated: #ffffff;
@@ -86,16 +88,17 @@
     --app-inset: #292524;
     --app-handle: #57534e;
 
-    --app-brand-50: #052e16;
-    --app-brand-100: #14532d;
-    --app-brand-200: #166534;
-    --app-brand-300: #15803d;
-    --app-brand-400: #16a34a;
-    --app-brand-500: #22c55e;
-    --app-brand-600: #22c55e;
-    --app-brand-700: #4ade80;
-    --app-brand-800: #86efac;
-    --app-brand-900: #bbf7d0;
+    /* Deep forest green — saturated, dark, not neon or washed out */
+    --app-brand-50: #0c1a13;
+    --app-brand-100: #102318;
+    --app-brand-200: #163020;
+    --app-brand-300: #1e422b;
+    --app-brand-400: #1a5234;
+    --app-brand-500: #144a2e;
+    --app-brand-600: #0f3a25;
+    --app-brand-700: #082818;
+    --app-brand-800: #3d9a65;
+    --app-brand-900: #5cb882;
 
     --app-danger-subtle: #450a0a;
     --app-danger: #f87171;
@@ -119,20 +122,30 @@
   }
 }
 
-/* Sonner: below sticky header, above modals (z-50) */
-[data-sonner-toaster] {
+/* Sonner: below sticky chrome (header ± menu tabs), above modals (z-50) */
+html[data-toast-layout='with-tabs'] {
+  --toast-top-offset: calc(
+    var(--app-header-height) + var(--menu-tabs-height) + 0.5rem
+  );
+}
+
+[data-sonner-toaster][data-y-position='top'] {
   z-index: 100 !important;
   font-family: var(--font-sans);
-  top: calc(var(--app-header-height) + 12px) !important;
+  top: var(--toast-top-offset) !important;
+}
+
+[data-sonner-toaster][data-x-position='center'] {
   left: 50% !important;
   right: auto !important;
-  transform: translateX(-50%);
-  width: min(100% - 2rem, 32rem);
+  width: min(32rem, calc(100vw - 2rem)) !important;
+  transform: translateX(-50%) !important;
 }
 
 [data-sonner-toast] {
   position: relative !important;
   width: 100% !important;
+  margin-inline: auto !important;
 }
 
 [data-sonner-toast] [data-close-button] {

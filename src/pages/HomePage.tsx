@@ -1,5 +1,5 @@
 import { Check, CloudUpload, Loader2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { DietHeader } from '../components/diet/DietHeader'
 import { MacrosGrid } from '../components/diet/MacrosGrid'
@@ -22,6 +22,13 @@ export function HomePage() {
   const activeMenu =
     plan?.menus.find((m) => m.id === (activeMenuId ?? plan.menus[0]?.id)) ??
     plan?.menus[0]
+
+  useEffect(() => {
+    document.documentElement.dataset.toastLayout = plan ? 'with-tabs' : 'header-only'
+    return () => {
+      delete document.documentElement.dataset.toastLayout
+    }
+  }, [plan])
 
   if (loading) {
     return (
@@ -51,7 +58,7 @@ export function HomePage() {
           {!user && (
             <Link
               to="/login"
-              className="mt-4 text-sm font-medium text-brand-700 hover:underline"
+              className="mt-4 text-sm font-medium text-brand-700 hover:underline dark:text-brand-500"
             >
               Entrar com Google para salvar na nuvem
             </Link>

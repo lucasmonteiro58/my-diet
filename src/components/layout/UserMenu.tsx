@@ -26,7 +26,7 @@ export function UserMenu({ onImportClick }: UserMenuProps) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-brand-700 transition hover:bg-brand-100"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-brand-700 transition hover:bg-brand-100 dark:text-brand-500"
           aria-expanded={open}
           aria-haspopup="dialog"
           aria-label="Configurações"

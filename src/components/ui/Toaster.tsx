@@ -6,9 +6,10 @@ export function Toaster() {
     <Sonner
       position="top-center"
       closeButton
+      expand={false}
       richColors={false}
-      offset="calc(var(--app-header-height) + 12px)"
-      mobileOffset={{ top: 'calc(var(--app-header-height) + 12px)' }}
+      offset="var(--toast-top-offset)"
+      mobileOffset={{ top: 'var(--toast-top-offset)' }}
       toastOptions={{
         duration: 3500,
         classNames: {

@@ -1,5 +1,6 @@
 import { ChevronDown, Clock, Info, UtensilsCrossed } from 'lucide-react'
 import { useState } from 'react'
+import { parseFoodQuantity } from '../../lib/format-quantity'
 import type { Meal } from '../../types/diet'
 
 interface MealCardProps {
@@ -17,7 +18,7 @@ export function MealCard({ meal, defaultOpen = false }: MealCardProps) {
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center gap-3 p-4 text-left"
       >
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700 dark:text-brand-800">
           <UtensilsCrossed className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
@@ -39,23 +40,35 @@ export function MealCard({ meal, defaultOpen = false }: MealCardProps) {
           {meal.preparations.map((prep, idx) => (
             <div key={`${prep.name}-${idx}`}>
               {prep.name && prep.foods.length > 0 && (
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-700">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-800">
                   {prep.name}
                 </p>
               )}
               {prep.foods.length > 0 ? (
                 <ul className="space-y-2">
-                  {prep.foods.map((food, foodIdx) => (
-                    <li
-                      key={`${food.name}-${foodIdx}`}
-                      className="flex items-start justify-between gap-3 rounded-xl bg-subtle px-3 py-2.5"
-                    >
-                      <span className="text-sm font-medium text-ink">{food.name}</span>
-                      <span className="shrink-0 text-right text-xs text-ink-muted">
-                        {food.quantity}
-                      </span>
-                    </li>
-                  ))}
+                  {prep.foods.map((food, foodIdx) => {
+                    const { highlight, detail } = parseFoodQuantity(food.quantity)
+                    return (
+                      <li
+                        key={`${food.name}-${foodIdx}`}
+                        className="flex items-center justify-between gap-3 rounded-xl bg-subtle px-3 py-3"
+                      >
+                        <span className="min-w-0 text-sm leading-snug text-ink">
+                          {food.name}
+                        </span>
+                        <div className="flex shrink-0 flex-col items-end gap-0.5 pl-2">
+                          <span className="rounded-lg bg-brand-50 px-2.5 py-1 text-base font-bold leading-none tabular-nums tracking-tight text-brand-800 dark:bg-brand-200 dark:text-brand-500">
+                            {highlight}
+                          </span>
+                          {detail && (
+                            <span className="max-w-32 truncate text-right text-[10px] leading-tight text-ink-muted">
+                              {detail}
+                            </span>
+                          )}
+                        </div>
+                      </li>
+                    )
+                  })}
                 </ul>
               ) : null}
             </div>

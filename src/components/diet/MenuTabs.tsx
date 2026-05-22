@@ -20,13 +20,13 @@ export function MenuTabs({ menus, activeId, onChange }: MenuTabsProps) {
             className={[
               'shrink-0 rounded-2xl px-4 py-2.5 text-left transition',
               active
-                ? 'bg-brand-600 text-white shadow-md shadow-brand-600/25'
-                : 'border border-border bg-surface-elevated text-ink hover:border-brand-300',
+                ? 'bg-brand-600 text-white shadow-md shadow-brand-600/25 dark:bg-brand-700 dark:shadow-black/35'
+                : 'border border-border bg-surface-elevated text-ink hover:border-brand-300 dark:hover:border-brand-300/60',
             ].join(' ')}
           >
             <p className="text-sm font-semibold">{menu.title}</p>
             <p
-              className={`text-xs ${active ? 'text-brand-100' : 'text-ink-muted'}`}
+              className={`text-xs ${active ? 'text-brand-100/90 dark:text-white/60' : 'text-ink-muted'}`}
             >
               {menu.subtitle}
             </p>
