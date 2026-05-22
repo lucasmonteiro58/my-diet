@@ -7,7 +7,6 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { lucasDietPlan } from '../data/lucas-diet'
 import { parseDietPlanJson } from '../lib/import-plan'
 import { canUseCloud, getUserDietPlan, saveDietPlan } from '../services/dietService'
 import type { DietPlan } from '../types/diet'
@@ -21,7 +20,6 @@ interface DietContextValue {
   saving: boolean
   error: string | null
   importFromJson: (json: string) => Promise<void>
-  loadDemo: () => void
   savePlan: () => Promise<void>
   setPlan: (plan: DietPlan) => void
 }
@@ -102,10 +100,6 @@ export function DietProvider({ children }: { children: ReactNode }) {
     [setPlan],
   )
 
-  const loadDemo = useCallback(() => {
-    setPlan({ ...lucasDietPlan, id: crypto.randomUUID() })
-  }, [setPlan])
-
   const savePlan = useCallback(async () => {
     if (!plan) return
     setSaving(true)
@@ -130,11 +124,10 @@ export function DietProvider({ children }: { children: ReactNode }) {
       saving,
       error,
       importFromJson,
-      loadDemo,
       savePlan,
       setPlan,
     }),
-    [plan, loading, saving, error, importFromJson, loadDemo, savePlan, setPlan],
+    [plan, loading, saving, error, importFromJson, savePlan, setPlan],
   )
 
   return <DietContext.Provider value={value}>{children}</DietContext.Provider>

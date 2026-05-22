@@ -5,7 +5,6 @@ Mobile-first app that turns nutrition PDF meal plans into a clean, modern interf
 ## Features
 
 - Import meal plans via AI (copy prompt → Gemini/ChatGPT with PDF → paste JSON)
-- Pre-loaded demo plan (Lucas Monteiro — 22/05/2026)
 - Google sign-in via Firebase Authentication
 - Save plans to Firestore (per user) with local fallback
 - Three menu tabs (weekday / weekend), expandable meal cards, macro grid
@@ -46,8 +45,9 @@ Add `localhost` and your production domain under Authentication → Settings →
 
 1. In the app, tap **Importar plano** → **Copiar prompt para IA**
 2. Open [Gemini](https://gemini.google.com), attach your nutrition PDF, paste the prompt
-3. Copy the JSON response → app tab **2. Colar JSON** → **Usar este plano**
-4. Save locally or to Firebase
+3. Download `plano-alimentar.json` from the AI (or save the JSON from chat as `.json`)
+4. App tab **2. Arquivo JSON** → select the file (or paste JSON as fallback)
+5. Save locally or to Firebase
 
 The prompt and JSON schema live in `src/lib/ai-prompt.ts` and `src/lib/import-plan.ts`.
 

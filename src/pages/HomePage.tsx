@@ -43,8 +43,7 @@ export function HomePage() {
           </div>
           <h2 className="mt-6 text-xl font-bold text-ink">Nenhum plano ainda</h2>
           <p className="mt-2 max-w-xs text-sm text-ink-muted">
-            Use o prompt com Gemini (ou outra IA), cole o JSON aqui, ou carregue o
-            plano de demonstração.
+            Use o prompt no Gemini, baixe o arquivo JSON e importe aqui.
           </p>
           <Button className="mt-6" fullWidth onClick={() => setUploadOpen(true)}>
             Importar plano

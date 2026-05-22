@@ -1,29 +1,43 @@
+/** Suggested filename pattern the AI should use when exporting a JSON file. */
+export const DIET_JSON_FILENAME = 'plano-alimentar.json'
+
 /**
  * Prompt for external AI (Gemini, ChatGPT, etc.).
- * User attaches the PDF in the AI chat and pastes this instruction.
+ * User attaches the PDF and asks the AI to produce a downloadable JSON file.
  */
 export function buildDietExtractionPrompt(): string {
-  return `You are a data extraction assistant. The user will attach a Brazilian nutrition meal plan PDF ("Plano Alimentar").
+  return `You are a data extraction assistant. The user attached a Brazilian nutrition meal plan PDF ("Plano Alimentar").
 
-Read the entire PDF carefully and return ONE valid JSON object — no markdown, no code fences, no explanation before or after.
+Your task: extract ALL information and deliver it as a **downloadable JSON file** for the My Diet mobile app.
 
-## Rules
+## Required deliverables (both)
 
-1. Extract ALL cardápios (Cardápio 1, 2, 3…) with their subtitle in parentheses (e.g. "Dias de semana").
-2. For each meal (Desjejum, Lanche, Lanche 1, Lanche 2, Almoço, Jantar, etc.):
-   - Keep the exact time range from the PDF (e.g. "08:00 – 08:30").
-   - Group foods under "preparations" (preparações): Fruta, Salada Crua, Sanduíche…, Shake…, etc.
-   - Each food must have "name" and "quantity" (full text from the QUANTIDADES column, including grams).
-   - If the PDF has "OU" between options, list each option as separate food items in the same preparation.
-   - Put "Observações:" text in the meal's "notes" field (single string).
-3. Macros: energyKcal (number), carbsG, proteinG, lipidsG, fiberG, weightKg (numbers only, use dot for decimals).
-4. Supplements section → "supplements" array.
-5. "Recomendações Gerais" → "generalRecommendations" array of strings (one per bullet).
-6. Nutritionist contact: whatsapp and email from the PDF header/footer.
-7. Use empty string "" for missing text fields; never use null.
-8. Generate simple unique string ids: "menu-1", "meal-1-1", etc.
+1. **JSON file (primary)** — Create and offer a downloadable file named exactly:
+   \`${DIET_JSON_FILENAME}\`
+   - In Gemini: use Canvas / export / "download file" if available, or provide a single \`.json\` attachment the user can save.
+   - In ChatGPT: use Advanced Data Analysis to write the file and let the user download it.
+   - The file must be valid UTF-8 JSON (pretty-printed with 2-space indent is OK).
 
-## JSON schema (follow exactly)
+2. **Same JSON in the chat (backup)** — After the file, paste the raw JSON object once more so the user can copy if download fails. No markdown fences in the pasted JSON block.
+
+Do NOT wrap the downloadable file content in \`\`\`json\`\`\`. Do NOT add explanations inside the JSON.
+
+## Extraction rules
+
+1. Extract every "Cardápio N (subtitle)" as a separate menu.
+2. Meals: Desjejum, Lanche, Lanche 1, Lanche 2, Almoço, Jantar, Ceia, etc. — keep exact times from the PDF.
+3. Group items under "preparations" (Fruta, Salada Crua, Sanduíche…, Shake…).
+4. Each food: "name" + "quantity" (full text from QUANTIDADES, including grams).
+5. "OU" options → separate food objects in the same preparation.
+6. "Observações:" → meal "notes" (one string).
+7. Macros as numbers only (dot for decimals): energyKcal, carbsG, proteinG, lipidsG, fiberG, weightKg.
+8. Suplementação → "supplements" array.
+9. Recomendações Gerais → "generalRecommendations" (one string per bullet).
+10. Nutritionist whatsapp + email from PDF header/footer.
+11. Use "" for missing strings, never null.
+12. ids: "menu-1", "meal-1-1", etc.
+
+## JSON schema (strict)
 
 {
   "patientName": "string",
@@ -59,7 +73,7 @@ Read the entire PDF carefully and return ONE valid JSON object — no markdown, 
               ]
             }
           ],
-          "notes": "optional string"
+          "notes": ""
         }
       ]
     }
@@ -75,5 +89,12 @@ Read the entire PDF carefully and return ONE valid JSON object — no markdown, 
   "generalRecommendations": ["string"]
 }
 
-Return only the JSON object.`
+## Quality check before sending
+
+- JSON parses with JSON.parse without errors
+- At least 1 menu with meals
+- Every meal has preparations with at least one food when the PDF lists foods
+- patientName and date match the PDF
+
+Start by confirming you read the PDF, then provide the file \`${DIET_JSON_FILENAME}\`, then the raw JSON backup.`
 }
