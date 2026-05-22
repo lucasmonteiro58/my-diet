@@ -106,7 +106,7 @@ export function DietProvider({ children }: { children: ReactNode }) {
     async (file: File) => {
       setError(null)
       try {
-        const json = await extractDietJsonFromPdf(file)
+        const { json } = await extractDietJsonFromPdf(file)
         const parsed = parseDietPlanJson(json)
         setPlan(parsed)
       } catch (e) {

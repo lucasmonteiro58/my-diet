@@ -45,7 +45,7 @@ Add `localhost` and your production domain under Authentication → Settings →
 
 ### Automatic (default)
 
-1. Add `VITE_GEMINI_API_KEY` to `.env` ([get a key](https://aistudio.google.com/apikey)). Default model: `gemini-2.5-flash-lite` (check [rate limits](https://aistudio.google.com/rate-limit))
+1. Add `VITE_GEMINI_API_KEY` to `.env` ([get a key](https://aistudio.google.com/apikey)). The app tries several models automatically (see [rate limits](https://aistudio.google.com/rate-limit))
 2. **Importar plano** → **Enviar PDF** → select your nutrition PDF
 3. Save locally or to Firebase
 

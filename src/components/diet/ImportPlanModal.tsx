@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { buildDietExtractionPrompt, DIET_JSON_FILENAME } from '../../lib/ai-prompt'
-import { DEFAULT_GEMINI_MODEL, isGeminiConfigured } from '../../lib/gemini'
+import { GEMINI_MODEL_CHAIN, isGeminiConfigured } from '../../lib/gemini'
 import { useDiet } from '../../contexts/DietContext'
 import { Button } from '../ui/Button'
 
@@ -188,8 +188,9 @@ export function ImportPlanModal({ open, onClose }: ImportPlanModalProps) {
 
               {geminiReady && (
                 <p className="text-xs leading-relaxed text-ink-muted">
-                  Modelo: <strong>{DEFAULT_GEMINI_MODEL}</strong> (cota gratuita: ~20
-                  envios/dia). Limites em{' '}
+                  Tenta automaticamente:{' '}
+                  {GEMINI_MODEL_CHAIN.slice(0, 3).join(' → ')}… se um falhar ou vier
+                  incompleto. Cotas em{' '}
                   <a
                     href="https://aistudio.google.com/rate-limit"
                     target="_blank"
@@ -296,7 +297,7 @@ export function ImportPlanModal({ open, onClose }: ImportPlanModalProps) {
                         3
                       </span>
                       <span>
-                        Copie o JSON do bloco <strong>```json</strong> na resposta e cole em{' '}
+                        Copie o JSON do bloco <strong>json</strong> na resposta e cole em{' '}
                         <strong>Colar JSON</strong>.
                       </span>
                     </li>

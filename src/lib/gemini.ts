@@ -1,18 +1,21 @@
 import { buildGeminiExtractionPrompt } from './ai-prompt'
+import { parseDietPlanJson } from './import-plan'
 
 const MAX_PDF_BYTES = 20 * 1024 * 1024
 
 /**
- * Default model for free tier (see https://aistudio.google.com/rate-limit).
- * Gemini 2.5 Flash Lite: ~10 RPM, 250K TPM, 20 RPD on free tier.
+ * Models with free-tier quota on AI Studio (see https://aistudio.google.com/rate-limit).
+ * Order: more capable first, then higher daily limits, then lite fallback.
  */
-export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash-lite'
-
-const MODEL_FALLBACK_CHAIN = [
-  DEFAULT_GEMINI_MODEL,
+export const GEMINI_MODEL_CHAIN = [
   'gemini-3.1-flash-lite-preview',
+  'gemini-3.1-flash-lite',
   'gemini-2.5-flash',
+  'gemini-3-flash-preview',
+  'gemini-2.5-flash-lite',
 ] as const
+
+export const DEFAULT_GEMINI_MODEL = GEMINI_MODEL_CHAIN[0]
 
 export function isGeminiConfigured(): boolean {
   return Boolean(import.meta.env.VITE_GEMINI_API_KEY?.trim())
@@ -20,8 +23,11 @@ export function isGeminiConfigured(): boolean {
 
 function getModelsToTry(): string[] {
   const custom = import.meta.env.VITE_GEMINI_MODEL?.trim()
-  if (custom) return [custom, ...MODEL_FALLBACK_CHAIN.filter((m) => m !== custom)]
-  return [...MODEL_FALLBACK_CHAIN]
+  const chain = [...GEMINI_MODEL_CHAIN]
+  if (custom) {
+    return [custom, ...chain.filter((m) => m !== custom)]
+  }
+  return chain
 }
 
 function fileToBase64(file: File): Promise<string> {
@@ -45,24 +51,44 @@ function fileToBase64(file: File): Promise<string> {
   })
 }
 
-function isQuotaError(message: string, status: number): boolean {
+function isRetryableError(message: string, status: number): boolean {
   return (
     status === 429 ||
-    /quota|rate.?limit|resource exhausted|limit:\s*0/i.test(message)
+    status === 404 ||
+    status === 503 ||
+    /quota|rate.?limit|resource exhausted|limit:\s*0|not found|unavailable/i.test(
+      message,
+    )
   )
 }
 
-function formatGeminiError(message: string, status: number, model: string): string {
-  if (isQuotaError(message, status)) {
-    return [
-      `Cota esgotada para ${model} (plano gratuito: ~20 PDFs/dia no 2.5 Flash Lite).`,
-      'Aguarde 1 minuto ou use a aba Manual.',
-      'Confira limites em aistudio.google.com/rate-limit',
-    ].join(' ')
+function isWeakPlan(json: string): boolean {
+  try {
+    const plan = parseDietPlanJson(json)
+    const mealCount = plan.menus.reduce((n, m) => n + m.meals.length, 0)
+    const foodCount = plan.menus.reduce(
+      (n, m) =>
+        n +
+        m.meals.reduce(
+          (s, meal) =>
+            s + meal.preparations.reduce((p, prep) => p + prep.foods.length, 0),
+          0,
+        ),
+      0,
+    )
+    return plan.menus.length === 0 || mealCount < 2 || foodCount < 3
+  } catch {
+    return true
   }
-  if (status === 403) return 'Chave da API inválida ou sem permissão. Verifique o .env.'
-  if (status === 404) return `Modelo "${model}" não encontrado. Ajuste VITE_GEMINI_MODEL no .env.`
-  return message || `Erro na API Gemini (${status}).`
+}
+
+function formatGeminiError(message: string, status: number, model: string): string {
+  if (status === 429 || /quota|limit:\s*0/i.test(message)) {
+    return `Cota esgotada para ${model}. Próximo modelo será tentado automaticamente.`
+  }
+  if (status === 404) return `Modelo ${model} não disponível na API.`
+  if (status === 403) return 'Chave da API inválida. Verifique VITE_GEMINI_API_KEY no .env.'
+  return message || `Erro Gemini (${status}).`
 }
 
 async function requestGemini(
@@ -87,7 +113,7 @@ async function requestGemini(
         ],
         generationConfig: {
           responseMimeType: 'application/json',
-          temperature: 0.1,
+          temperature: 0,
         },
       }),
     },
@@ -112,14 +138,19 @@ async function requestGemini(
     return {
       ok: false,
       status: 500,
-      message: 'O Gemini não retornou dados. Tente novamente ou use o modo manual.',
+      message: 'Resposta vazia do modelo.',
     }
   }
 
   return { ok: true, text }
 }
 
-export async function extractDietJsonFromPdf(file: File): Promise<string> {
+export interface ExtractPdfResult {
+  json: string
+  modelUsed: string
+}
+
+export async function extractDietJsonFromPdf(file: File): Promise<ExtractPdfResult> {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim()
   if (!apiKey) {
     throw new Error('Configure VITE_GEMINI_API_KEY no arquivo .env e reinicie o servidor.')
@@ -140,18 +171,31 @@ export async function extractDietJsonFromPdf(file: File): Promise<string> {
 
   for (const model of models) {
     const result = await requestGemini(apiKey, model, base64, prompt)
-    if (result.ok) return result.text
 
-    errors.push(`[${model}] ${result.message}`)
-
-    if (!isQuotaError(result.message, result.status)) {
+    if (!result.ok) {
+      errors.push(`[${model}] ${result.message}`)
+      if (isRetryableError(result.message, result.status)) continue
       throw new Error(result.message)
+    }
+
+    if (isWeakPlan(result.text)) {
+      errors.push(`[${model}] Plano incompleto — tentando outro modelo.`)
+      continue
+    }
+
+    try {
+      parseDietPlanJson(result.text)
+      return { json: result.text, modelUsed: model }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'JSON inválido'
+      errors.push(`[${model}] ${msg}`)
+      continue
     }
   }
 
   throw new Error(
     errors.length > 0
-      ? errors[errors.length - 1]
-      : 'Nenhum modelo Gemini disponível. Use a aba Manual.',
+      ? `${errors.join(' ')} Use a aba Manual ou tente mais tarde.`
+      : 'Nenhum modelo disponível. Use a aba Manual.',
   )
 }
