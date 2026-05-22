@@ -8,19 +8,19 @@ export function Toaster() {
       closeButton
       expand={false}
       richColors={false}
-      offset="var(--toast-top-offset)"
-      mobileOffset={{ top: 'var(--toast-top-offset)' }}
+      offset={0}
+      mobileOffset={0}
       toastOptions={{
         duration: 3500,
         classNames: {
           toast:
-            'group !rounded-2xl !border !border-border !bg-surface-elevated !font-sans !text-ink !shadow-lg !shadow-black/10 dark:!shadow-black/30',
-          title: '!text-sm !font-semibold !text-ink',
-          description: '!text-xs !text-ink-muted',
+            'group !flex !items-center !gap-3 !rounded-2xl !border !border-border !bg-surface-elevated !p-3.5 !pr-11 !font-sans !text-ink !shadow-lg !shadow-black/10 dark:!shadow-black/30',
+          title: '!text-sm !font-semibold !leading-snug !text-ink',
+          description: '!text-xs !leading-snug !text-ink-muted',
           closeButton:
             '!border-border !bg-hover !text-ink-muted hover:!bg-active',
           success:
-            '!border-brand-200 !bg-brand-50 [&_[data-title]]:!text-brand-900 dark:[&_[data-title]]:!text-brand-100',
+            '!border-brand-200 !bg-brand-50 [&_[data-title]]:!text-brand-900 [&_[data-description]]:!text-brand-800/80 dark:!border-brand-500/40 dark:!bg-surface-elevated dark:[&_[data-title]]:!text-ink dark:[&_[data-description]]:!text-ink-muted',
           error:
             '!border-danger/30 !bg-danger-subtle [&_[data-title]]:!text-danger-text',
           info: '!border-border !bg-subtle [&_[data-title]]:!text-ink',
@@ -29,7 +29,7 @@ export function Toaster() {
       }}
       icons={{
         success: (
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white dark:bg-brand-400">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -63,7 +63,7 @@ export function Toaster() {
           </span>
         ),
         info: (
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-300/50 dark:text-brand-900">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"

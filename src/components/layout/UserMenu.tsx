@@ -26,7 +26,7 @@ export function UserMenu({ onImportClick }: UserMenuProps) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-brand-700 transition hover:bg-brand-100 dark:text-brand-500"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-brand-700 transition hover:bg-brand-100 dark:bg-brand-300/40 dark:text-brand-900 dark:hover:bg-brand-300/60"
           aria-expanded={open}
           aria-haspopup="dialog"
           aria-label="Configurações"
@@ -42,7 +42,7 @@ export function UserMenu({ onImportClick }: UserMenuProps) {
               onClick={() => setOpen(false)}
               className="mx-1 flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-medium text-ink transition hover:bg-hover active:bg-active"
             >
-              <LogIn className="h-5 w-5 text-brand-600" />
+              <LogIn className="h-5 w-5 text-brand-600 dark:text-brand-800" />
               Entrar
             </Link>
           </div>
@@ -117,7 +117,7 @@ export function UserMenu({ onImportClick }: UserMenuProps) {
               }}
               className="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-medium text-ink transition hover:bg-hover active:bg-active"
             >
-              <Sparkles className="h-5 w-5 text-brand-600" />
+              <Sparkles className="h-5 w-5 text-brand-600 dark:text-brand-800" />
               Importar plano
             </button>
           )}

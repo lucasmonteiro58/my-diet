@@ -1,5 +1,5 @@
 import { Check, CloudUpload, Loader2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { DietHeader } from '../components/diet/DietHeader'
 import { MacrosGrid } from '../components/diet/MacrosGrid'
@@ -23,18 +23,11 @@ export function HomePage() {
     plan?.menus.find((m) => m.id === (activeMenuId ?? plan.menus[0]?.id)) ??
     plan?.menus[0]
 
-  useEffect(() => {
-    document.documentElement.dataset.toastLayout = plan ? 'with-tabs' : 'header-only'
-    return () => {
-      delete document.documentElement.dataset.toastLayout
-    }
-  }, [plan])
-
   if (loading) {
     return (
       <AppShell>
         <div className="flex flex-col items-center justify-center gap-3 py-24">
-          <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-brand-600 dark:text-brand-800" />
           <p className="text-sm text-ink-muted">Carregando seu plano...</p>
         </div>
       </AppShell>
@@ -46,7 +39,7 @@ export function HomePage() {
       <AppShell onImportClick={() => setUploadOpen(true)}>
         <div className="flex flex-col items-center py-16 text-center">
           <div className="rounded-3xl bg-brand-50 p-6">
-            <CloudUpload className="mx-auto h-12 w-12 text-brand-600" />
+            <CloudUpload className="mx-auto h-12 w-12 text-brand-600 dark:text-brand-800" />
           </div>
           <h2 className="mt-6 text-xl font-bold text-ink">Nenhum plano ainda</h2>
           <p className="mt-2 max-w-xs text-sm text-ink-muted">
@@ -58,7 +51,7 @@ export function HomePage() {
           {!user && (
             <Link
               to="/login"
-              className="mt-4 text-sm font-medium text-brand-700 hover:underline dark:text-brand-500"
+              className="mt-4 text-sm font-medium text-brand-700 hover:underline dark:text-brand-800"
             >
               Entrar com Google para salvar na nuvem
             </Link>
