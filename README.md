@@ -41,13 +41,18 @@ Add `localhost` and your production domain under Authentication → Settings →
 | `npm run build`| Production build     |
 | `npm run preview` | Preview build     |
 
-## Importing a plan (AI workflow)
+## Importing a plan
 
-1. In the app, tap **Importar plano** → **Copiar prompt para IA**
-2. Open [Gemini](https://gemini.google.com), attach your nutrition PDF, paste the prompt
-3. Download `plano-alimentar.json` from the AI (or save the JSON from chat as `.json`)
-4. App tab **2. Arquivo JSON** → select the file (or paste JSON as fallback)
-5. Save locally or to Firebase
+### Automatic (default)
+
+1. Add `VITE_GEMINI_API_KEY` to `.env` ([get a key](https://aistudio.google.com/apikey))
+2. **Importar plano** → **Enviar PDF** → select your nutrition PDF
+3. Save locally or to Firebase
+
+### Manual (copy/paste)
+
+1. **Importar plano** → **Manual** → copy prompt → use [Gemini web](https://gemini.google.com) with the PDF
+2. Paste or upload the returned JSON in **Colar JSON**
 
 The prompt and JSON schema live in `src/lib/ai-prompt.ts` and `src/lib/import-plan.ts`.
 

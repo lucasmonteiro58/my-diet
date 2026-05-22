@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { extractDietJsonFromPdf } from '../lib/gemini'
 import { parseDietPlanJson } from '../lib/import-plan'
 import { canUseCloud, getUserDietPlan, saveDietPlan } from '../services/dietService'
 import type { DietPlan } from '../types/diet'
@@ -20,6 +21,7 @@ interface DietContextValue {
   saving: boolean
   error: string | null
   importFromJson: (json: string) => Promise<void>
+  importFromPdf: (file: File) => Promise<void>
   savePlan: () => Promise<void>
   setPlan: (plan: DietPlan) => void
 }
@@ -100,6 +102,23 @@ export function DietProvider({ children }: { children: ReactNode }) {
     [setPlan],
   )
 
+  const importFromPdf = useCallback(
+    async (file: File) => {
+      setError(null)
+      try {
+        const json = await extractDietJsonFromPdf(file)
+        const parsed = parseDietPlanJson(json)
+        setPlan(parsed)
+      } catch (e) {
+        const message =
+          e instanceof Error ? e.message : 'Não foi possível processar o PDF.'
+        setError(message)
+        throw e
+      }
+    },
+    [setPlan],
+  )
+
   const savePlan = useCallback(async () => {
     if (!plan) return
     setSaving(true)
@@ -124,10 +143,11 @@ export function DietProvider({ children }: { children: ReactNode }) {
       saving,
       error,
       importFromJson,
+      importFromPdf,
       savePlan,
       setPlan,
     }),
-    [plan, loading, saving, error, importFromJson, savePlan, setPlan],
+    [plan, loading, saving, error, importFromJson, importFromPdf, savePlan, setPlan],
   )
 
   return <DietContext.Provider value={value}>{children}</DietContext.Provider>

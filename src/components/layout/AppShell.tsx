@@ -1,7 +1,7 @@
-import { Leaf, LogOut, Sparkles } from 'lucide-react'
+import { Leaf } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { useAuth } from '../../contexts/AuthContext'
+import { UserMenu } from './UserMenu'
 
 interface AppShellProps {
   children: ReactNode
@@ -9,7 +9,6 @@ interface AppShellProps {
 }
 
 export function AppShell({ children, onImportClick }: AppShellProps) {
-  const { user, signOut, isConfigured } = useAuth()
   const location = useLocation()
 
   return (
@@ -26,45 +25,8 @@ export function AppShell({ children, onImportClick }: AppShellProps) {
             </div>
           </Link>
 
-          <div className="flex items-center gap-1">
-            {onImportClick && (
-              <button
-                type="button"
-                onClick={onImportClick}
-                className="rounded-xl p-2 text-ink-muted transition hover:bg-stone-100 hover:text-brand-700"
-                aria-label="Importar plano"
-              >
-                <Sparkles className="h-5 w-5" />
-              </button>
-            )}
-            {user && (
-              <button
-                type="button"
-                onClick={() => signOut()}
-                className="rounded-xl p-2 text-ink-muted transition hover:bg-stone-100 hover:text-red-600"
-                aria-label="Sair"
-              >
-                <LogOut className="h-5 w-5" />
-              </button>
-            )}
-          </div>
+          <UserMenu onImportClick={onImportClick} />
         </div>
-
-        {user && (
-          <div className="mt-2 flex items-center gap-2">
-            {user.photoURL ? (
-              <img
-                src={user.photoURL}
-                alt=""
-                className="h-6 w-6 rounded-full ring-2 ring-brand-100"
-              />
-            ) : null}
-            <p className="truncate text-xs text-ink-muted">
-              {user.displayName ?? user.email}
-              {!isConfigured && ' · modo local'}
-            </p>
-          </div>
-        )}
       </header>
 
       <main className="flex-1 px-4 pb-28 pt-4">{children}</main>
@@ -76,11 +38,6 @@ export function AppShell({ children, onImportClick }: AppShellProps) {
               <Leaf className="h-5 w-5" />
               Plano
             </Link>
-            {!user && (
-              <Link to="/login" className="flex flex-col items-center gap-1 hover:text-brand-700">
-                Entrar
-              </Link>
-            )}
           </div>
         </nav>
       )}

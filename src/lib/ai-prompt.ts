@@ -1,28 +1,7 @@
 /** Suggested filename pattern the AI should use when exporting a JSON file. */
 export const DIET_JSON_FILENAME = 'plano-alimentar.json'
 
-/**
- * Prompt for external AI (Gemini, ChatGPT, etc.).
- * User attaches the PDF and asks the AI to produce a downloadable JSON file.
- */
-export function buildDietExtractionPrompt(): string {
-  return `You are a data extraction assistant. The user attached a Brazilian nutrition meal plan PDF ("Plano Alimentar").
-
-Your task: extract ALL information and deliver it as a **downloadable JSON file** for the My Diet mobile app.
-
-## Required deliverables (both)
-
-1. **JSON file (primary)** — Create and offer a downloadable file named exactly:
-   \`${DIET_JSON_FILENAME}\`
-   - In Gemini: use Canvas / export / "download file" if available, or provide a single \`.json\` attachment the user can save.
-   - In ChatGPT: use Advanced Data Analysis to write the file and let the user download it.
-   - The file must be valid UTF-8 JSON (pretty-printed with 2-space indent is OK).
-
-2. **Same JSON in the chat (backup)** — After the file, paste the raw JSON object once more so the user can copy if download fails. No markdown fences in the pasted JSON block.
-
-Do NOT wrap the downloadable file content in \`\`\`json\`\`\`. Do NOT add explanations inside the JSON.
-
-## Extraction rules
+const EXTRACTION_RULES = `## Extraction rules
 
 1. Extract every "Cardápio N (subtitle)" as a separate menu.
 2. Meals: Desjejum, Lanche, Lanche 1, Lanche 2, Almoço, Jantar, Ceia, etc. — keep exact times from the PDF.
@@ -35,9 +14,9 @@ Do NOT wrap the downloadable file content in \`\`\`json\`\`\`. Do NOT add explan
 9. Recomendações Gerais → "generalRecommendations" (one string per bullet).
 10. Nutritionist whatsapp + email from PDF header/footer.
 11. Use "" for missing strings, never null.
-12. ids: "menu-1", "meal-1-1", etc.
+12. ids: "menu-1", "meal-1-1", etc.`
 
-## JSON schema (strict)
+const JSON_SCHEMA = `## JSON schema (strict)
 
 {
   "patientName": "string",
@@ -87,7 +66,45 @@ Do NOT wrap the downloadable file content in \`\`\`json\`\`\`. Do NOT add explan
     }
   ],
   "generalRecommendations": ["string"]
+}`
+
+/** Prompt for in-app Gemini API — returns JSON only. */
+export function buildGeminiExtractionPrompt(): string {
+  return `You are a data extraction assistant. Read the attached Brazilian nutrition meal plan PDF ("Plano Alimentar") and extract ALL data.
+
+Return ONLY a valid JSON object matching the schema below. No markdown, no code fences, no explanation.
+
+${EXTRACTION_RULES}
+
+${JSON_SCHEMA}
+
+Quality: JSON must parse with JSON.parse; at least 1 menu with meals; patientName and date must match the PDF.`
 }
+
+/**
+ * Prompt for manual use in Gemini web / ChatGPT.
+ * User attaches the PDF and asks the AI to produce a downloadable JSON file.
+ */
+export function buildDietExtractionPrompt(): string {
+  return `You are a data extraction assistant. The user attached a Brazilian nutrition meal plan PDF ("Plano Alimentar").
+
+Your task: extract ALL information and deliver it as a **downloadable JSON file** for the My Diet mobile app.
+
+## Required deliverables (both)
+
+1. **JSON file (primary)** — Create and offer a downloadable file named exactly:
+   \`${DIET_JSON_FILENAME}\`
+   - In Gemini: use Canvas / export / "download file" if available, or provide a single \`.json\` attachment the user can save.
+   - In ChatGPT: use Advanced Data Analysis to write the file and let the user download it.
+   - The file must be valid UTF-8 JSON (pretty-printed with 2-space indent is OK).
+
+2. **Same JSON in the chat (backup)** — After the file, paste the raw JSON object once more so the user can copy if download fails. No markdown fences in the pasted JSON block.
+
+Do NOT wrap the downloadable file content in \`\`\`json\`\`\`. Do NOT add explanations inside the JSON.
+
+${EXTRACTION_RULES}
+
+${JSON_SCHEMA}
 
 ## Quality check before sending
 
