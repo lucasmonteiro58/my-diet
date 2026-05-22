@@ -13,6 +13,7 @@ import { useRef, useState } from 'react'
 import { buildDietExtractionPrompt, DIET_JSON_FILENAME } from '../../lib/ai-prompt'
 import { GEMINI_MODEL_CHAIN, isGeminiConfigured } from '../../lib/gemini'
 import { useDiet } from '../../contexts/DietContext'
+import { toast } from '../../lib/toast'
 import { Button } from '../ui/Button'
 
 interface ImportPlanModalProps {
@@ -57,8 +58,11 @@ export function ImportPlanModal({ open, onClose }: ImportPlanModalProps) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2500)
       setLocalError(null)
+      toast.success('Prompt copiado', 'Cole no Gemini com o PDF anexo.')
     } catch {
-      setLocalError('Não foi possível copiar. Selecione e copie manualmente.')
+      const message = 'Não foi possível copiar. Selecione e copie manualmente.'
+      setLocalError(message)
+      toast.error('Erro ao copiar', message)
     }
   }
 

@@ -40,3 +40,9 @@
     padding-right: var(--safe-right);
   }
 }
+
+/* Sonner toasts above modals (z-50) */
+[data-sonner-toaster] {
+  z-index: 100 !important;
+  font-family: var(--font-sans);
+}

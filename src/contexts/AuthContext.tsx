@@ -14,6 +14,7 @@ import {
   type User,
 } from 'firebase/auth'
 import { auth, googleProvider, isFirebaseConfigured } from '../lib/firebase'
+import { toast } from '../lib/toast'
 
 interface AuthContextValue {
   user: User | null
@@ -43,12 +44,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = useCallback(async () => {
     if (!auth) throw new Error('Configure Firebase no arquivo .env')
-    await signInWithPopup(auth, googleProvider)
+    try {
+      await signInWithPopup(auth, googleProvider)
+      toast.success('Login realizado', 'Seu plano será sincronizado na nuvem.')
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Não foi possível entrar.'
+      toast.error('Erro ao entrar', message)
+      throw e
+    }
   }, [])
 
   const signOut = useCallback(async () => {
     if (!auth) return
     await firebaseSignOut(auth)
+    toast.info('Sessão encerrada', 'O plano local neste dispositivo foi mantido.')
   }, [])
 
   const value = useMemo(

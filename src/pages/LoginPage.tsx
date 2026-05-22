@@ -25,7 +25,7 @@ export function LoginPage() {
       <div className="mt-8 space-y-3">
         <Button
           fullWidth
-          onClick={() => signInWithGoogle()}
+          onClick={() => void signInWithGoogle()}
           disabled={loading || !isConfigured}
         >
           <LogIn className="h-5 w-5" />

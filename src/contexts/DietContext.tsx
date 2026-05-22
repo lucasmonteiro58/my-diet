@@ -10,6 +10,7 @@ import {
 import { formatFirebaseError } from '../lib/firebase-errors'
 import { extractDietJsonFromPdf } from '../lib/gemini'
 import { parseDietPlanJson } from '../lib/import-plan'
+import { toast } from '../lib/toast'
 import {
   canUseCloud,
   getCurrentUserDietPlan,
@@ -110,9 +111,12 @@ export function DietProvider({ children }: { children: ReactNode }) {
       try {
         const saved = await saveDietPlanAsCurrent(user.uid, planToSave)
         applyPlan(saved, true)
+        toast.success('Plano salvo na nuvem', 'Sincronizado com sua conta Google.')
         return saved
       } catch (e) {
-        setError(formatFirebaseError(e))
+        const message = formatFirebaseError(e)
+        setError(message)
+        toast.error('Não foi possível salvar na nuvem', message)
         setCloudSynced(false)
         throw e
       } finally {
@@ -169,11 +173,14 @@ export function DietProvider({ children }: { children: ReactNode }) {
         const message =
           e instanceof Error ? e.message : 'Não foi possível importar o JSON.'
         setError(message)
+        toast.error('Erro ao importar', message)
         throw e
       }
       applyPlan(parsed, false)
       if (user && canUseCloud()) {
         await syncToCloud(parsed)
+      } else {
+        toast.success('Plano importado', 'Salvo neste dispositivo.')
       }
     },
     [user, applyPlan, syncToCloud],
@@ -190,11 +197,14 @@ export function DietProvider({ children }: { children: ReactNode }) {
         const message =
           e instanceof Error ? e.message : 'Não foi possível processar o PDF.'
         setError(message)
+        toast.error('Erro ao processar PDF', message)
         throw e
       }
       applyPlan(parsed, false)
       if (user && canUseCloud()) {
         await syncToCloud(parsed)
+      } else {
+        toast.success('Plano importado', 'Salvo neste dispositivo.')
       }
     },
     [user, applyPlan, syncToCloud],
@@ -207,6 +217,7 @@ export function DietProvider({ children }: { children: ReactNode }) {
       return
     }
     persistLocal(plan)
+    toast.success('Plano salvo localmente', 'Armazenado neste dispositivo.')
   }, [plan, user, syncToCloud])
 
   const value = useMemo(

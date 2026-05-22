@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { Toaster } from './components/ui/Toaster'
 import { AuthProvider } from './contexts/AuthContext'
 import { DietProvider } from './contexts/DietContext'
 import { HomePage } from './pages/HomePage'
@@ -15,6 +16,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
+        <Toaster />
       </DietProvider>
     </AuthProvider>
   )
