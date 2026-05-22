@@ -1,18 +1,24 @@
 import { Pill } from 'lucide-react'
 import type { Supplement } from '../../types/diet'
+import { CollapsibleSection } from '../ui/CollapsibleSection'
 
 interface SupplementsSectionProps {
   supplements: Supplement[]
+}
+
+function supplementSummary(count: number): string {
+  return count === 1 ? '1 suplemento' : `${count} suplementos`
 }
 
 export function SupplementsSection({ supplements }: SupplementsSectionProps) {
   if (!supplements.length) return null
 
   return (
-    <section className="space-y-3">
-      <h2 className="text-sm font-bold uppercase tracking-wide text-ink-muted">
-        Suplementação
-      </h2>
+    <CollapsibleSection
+      title="Suplementação"
+      summary={supplementSummary(supplements.length)}
+    >
+      <div className="space-y-3">
       {supplements.map((sup) => (
         <div
           key={sup.name}
@@ -40,6 +46,7 @@ export function SupplementsSection({ supplements }: SupplementsSectionProps) {
           </dl>
         </div>
       ))}
-    </section>
+      </div>
+    </CollapsibleSection>
   )
 }

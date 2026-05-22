@@ -1,17 +1,22 @@
 import { CheckCircle2 } from 'lucide-react'
+import { CollapsibleSection } from '../ui/CollapsibleSection'
 
 interface RecommendationsSectionProps {
   items: string[]
+}
+
+function recommendationsSummary(count: number): string {
+  return count === 1 ? '1 recomendação' : `${count} recomendações`
 }
 
 export function RecommendationsSection({ items }: RecommendationsSectionProps) {
   if (!items.length) return null
 
   return (
-    <section className="space-y-3">
-      <h2 className="text-sm font-bold uppercase tracking-wide text-ink-muted">
-        Recomendações gerais
-      </h2>
+    <CollapsibleSection
+      title="Recomendações gerais"
+      summary={recommendationsSummary(items.length)}
+    >
       <ul className="space-y-2 rounded-2xl border border-border bg-surface-elevated p-4 shadow-sm">
         {items.map((item, idx) => (
           <li key={idx} className="flex gap-2.5 text-sm leading-relaxed text-ink">
@@ -20,6 +25,6 @@ export function RecommendationsSection({ items }: RecommendationsSectionProps) {
           </li>
         ))}
       </ul>
-    </section>
+    </CollapsibleSection>
   )
 }
