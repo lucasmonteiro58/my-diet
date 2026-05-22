@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import { lucasDietPlan } from '../data/lucas-diet'
-import { parseDietPdf } from '../lib/pdf-parser'
+import { parseDietPlanJson } from '../lib/import-plan'
 import { canUseCloud, getUserDietPlan, saveDietPlan } from '../services/dietService'
 import type { DietPlan } from '../types/diet'
 import { useAuth } from './AuthContext'
@@ -20,7 +20,7 @@ interface DietContextValue {
   loading: boolean
   saving: boolean
   error: string | null
-  importPdf: (file: File) => Promise<void>
+  importFromJson: (json: string) => Promise<void>
   loadDemo: () => void
   savePlan: () => Promise<void>
   setPlan: (plan: DietPlan) => void
@@ -86,22 +86,16 @@ export function DietProvider({ children }: { children: ReactNode }) {
     }
   }, [user])
 
-  const importPdf = useCallback(
-    async (file: File) => {
+  const importFromJson = useCallback(
+    async (json: string) => {
       setError(null)
       try {
-        const parsed = await parseDietPdf(file)
-        if (parsed.menus.length === 0) {
-          setPlan({ ...lucasDietPlan, ...parsed, menus: lucasDietPlan.menus })
-        } else {
-          setPlan(parsed)
-        }
+        const parsed = parseDietPlanJson(json)
+        setPlan(parsed)
       } catch (e) {
-        setError(
-          e instanceof Error
-            ? e.message
-            : 'Não foi possível ler o PDF. Tente o plano de demonstração.',
-        )
+        const message =
+          e instanceof Error ? e.message : 'Não foi possível importar o JSON.'
+        setError(message)
         throw e
       }
     },
@@ -135,12 +129,12 @@ export function DietProvider({ children }: { children: ReactNode }) {
       loading,
       saving,
       error,
-      importPdf,
+      importFromJson,
       loadDemo,
       savePlan,
       setPlan,
     }),
-    [plan, loading, saving, error, importPdf, loadDemo, savePlan, setPlan],
+    [plan, loading, saving, error, importFromJson, loadDemo, savePlan, setPlan],
   )
 
   return <DietContext.Provider value={value}>{children}</DietContext.Provider>

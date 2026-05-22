@@ -1,14 +1,14 @@
-import { Leaf, LogOut, Upload } from 'lucide-react'
+import { Leaf, LogOut, Sparkles } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 
 interface AppShellProps {
   children: ReactNode
-  onUploadClick?: () => void
+  onImportClick?: () => void
 }
 
-export function AppShell({ children, onUploadClick }: AppShellProps) {
+export function AppShell({ children, onImportClick }: AppShellProps) {
   const { user, signOut, isConfigured } = useAuth()
   const location = useLocation()
 
@@ -27,14 +27,14 @@ export function AppShell({ children, onUploadClick }: AppShellProps) {
           </Link>
 
           <div className="flex items-center gap-1">
-            {onUploadClick && (
+            {onImportClick && (
               <button
                 type="button"
-                onClick={onUploadClick}
+                onClick={onImportClick}
                 className="rounded-xl p-2 text-ink-muted transition hover:bg-stone-100 hover:text-brand-700"
-                aria-label="Importar PDF"
+                aria-label="Importar plano"
               >
-                <Upload className="h-5 w-5" />
+                <Sparkles className="h-5 w-5" />
               </button>
             )}
             {user && (

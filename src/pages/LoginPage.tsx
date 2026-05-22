@@ -17,8 +17,8 @@ export function LoginPage() {
         </span>
         <h1 className="mt-6 text-2xl font-bold text-ink">Bem-vindo ao My Diet</h1>
         <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-          Transforme seu plano alimentar em PDF numa interface clara, bonita e
-          fácil de seguir no dia a dia.
+          Transforme seu plano alimentar numa interface clara, bonita e fácil de
+          seguir no dia a dia.
         </p>
       </div>
 

@@ -5,7 +5,7 @@ import { DietHeader } from '../components/diet/DietHeader'
 import { MacrosGrid } from '../components/diet/MacrosGrid'
 import { MealCard } from '../components/diet/MealCard'
 import { MenuTabs } from '../components/diet/MenuTabs'
-import { PdfUploadModal } from '../components/diet/PdfUploadModal'
+import { ImportPlanModal } from '../components/diet/ImportPlanModal'
 import { RecommendationsSection } from '../components/diet/RecommendationsSection'
 import { SupplementsSection } from '../components/diet/SupplementsSection'
 import { AppShell } from '../components/layout/AppShell'
@@ -36,18 +36,18 @@ export function HomePage() {
 
   if (!plan) {
     return (
-      <AppShell onUploadClick={() => setUploadOpen(true)}>
+      <AppShell onImportClick={() => setUploadOpen(true)}>
         <div className="flex flex-col items-center py-16 text-center">
           <div className="rounded-3xl bg-brand-50 p-6">
             <CloudUpload className="mx-auto h-12 w-12 text-brand-600" />
           </div>
           <h2 className="mt-6 text-xl font-bold text-ink">Nenhum plano ainda</h2>
           <p className="mt-2 max-w-xs text-sm text-ink-muted">
-            Importe o PDF do seu nutricionista ou use o plano de demonstração do
-            Lucas Monteiro.
+            Use o prompt com Gemini (ou outra IA), cole o JSON aqui, ou carregue o
+            plano de demonstração.
           </p>
           <Button className="mt-6" fullWidth onClick={() => setUploadOpen(true)}>
-            Importar PDF
+            Importar plano
           </Button>
           {!user && (
             <Link
@@ -58,13 +58,13 @@ export function HomePage() {
             </Link>
           )}
         </div>
-        <PdfUploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} />
+        <ImportPlanModal open={uploadOpen} onClose={() => setUploadOpen(false)} />
       </AppShell>
     )
   }
 
   return (
-    <AppShell onUploadClick={() => setUploadOpen(true)}>
+    <AppShell onImportClick={() => setUploadOpen(true)}>
       <div className="space-y-6">
         <DietHeader plan={plan} />
         <MacrosGrid macros={plan.macros} />
@@ -112,7 +112,7 @@ export function HomePage() {
         </Button>
       </div>
 
-      <PdfUploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} />
+      <ImportPlanModal open={uploadOpen} onClose={() => setUploadOpen(false)} />
     </AppShell>
   )
 }
