@@ -9,6 +9,7 @@ import {
   where,
   writeBatch,
 } from 'firebase/firestore'
+import { stripUndefinedDeep } from '../lib/firestore-data'
 import { db, isFirebaseConfigured } from '../lib/firebase'
 import type { DietPlan } from '../types/diet'
 
@@ -74,11 +75,11 @@ export async function saveDietPlanAsCurrent(
 
   await setDoc(
     ref,
-    {
+    stripUndefinedDeep({
       ...stamped,
       userId,
       current: true,
-    },
+    }),
     { merge: true },
   )
 

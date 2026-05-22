@@ -1,6 +1,6 @@
 import { Toaster as Sonner } from 'sonner'
 
-/** Toast host styled with My Diet tokens (brand green, stone surfaces). */
+/** Toast host styled with My Diet tokens (brand green, semantic surfaces). */
 export function Toaster() {
   return (
     <Sonner
@@ -13,15 +13,16 @@ export function Toaster() {
         duration: 3500,
         classNames: {
           toast:
-            'group !rounded-2xl !border !border-border !bg-surface-elevated !font-sans !text-ink !shadow-lg !shadow-stone-900/10',
+            'group !rounded-2xl !border !border-border !bg-surface-elevated !font-sans !text-ink !shadow-lg !shadow-black/10 dark:!shadow-black/30',
           title: '!text-sm !font-semibold !text-ink',
           description: '!text-xs !text-ink-muted',
           closeButton:
-            '!border-border !bg-stone-100 !text-ink-muted hover:!bg-stone-200',
+            '!border-border !bg-hover !text-ink-muted hover:!bg-active',
           success:
-            '!border-brand-200 !bg-brand-50 [&_[data-title]]:!text-brand-900',
-          error: '!border-red-200 !bg-red-50 [&_[data-title]]:!text-red-900',
-          info: '!border-stone-200 !bg-stone-50 [&_[data-title]]:!text-ink',
+            '!border-brand-200 !bg-brand-50 [&_[data-title]]:!text-brand-900 dark:[&_[data-title]]:!text-brand-100',
+          error:
+            '!border-danger/30 !bg-danger-subtle [&_[data-title]]:!text-danger-text',
+          info: '!border-border !bg-subtle [&_[data-title]]:!text-ink',
           icon: '!text-brand-600',
         },
       }}
@@ -44,7 +45,7 @@ export function Toaster() {
           </span>
         ),
         error: (
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-red-600 text-white">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-danger text-white">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"

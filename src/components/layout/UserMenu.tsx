@@ -1,7 +1,8 @@
-import { LogIn, LogOut, Sparkles } from 'lucide-react'
+import { LogIn, LogOut, Settings, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { ThemeSelector } from '../theme/ThemeSelector'
 import { BottomSheet } from '../ui/BottomSheet'
 
 interface UserMenuProps {
@@ -21,13 +22,32 @@ export function UserMenu({ onImportClick }: UserMenuProps) {
 
   if (!user) {
     return (
-      <Link
-        to="/login"
-        className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-brand-700 transition hover:bg-brand-100"
-        aria-label="Entrar"
-      >
-        <LogIn className="h-5 w-5" />
-      </Link>
+      <>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-brand-700 transition hover:bg-brand-100"
+          aria-expanded={open}
+          aria-haspopup="dialog"
+          aria-label="Configurações"
+        >
+          <Settings className="h-5 w-5" />
+        </button>
+
+        <BottomSheet open={open} onClose={() => setOpen(false)} ariaLabel="Configurações">
+          <div className="flex flex-col px-2 pb-2">
+            <ThemeSelector />
+            <Link
+              to="/login"
+              onClick={() => setOpen(false)}
+              className="mx-1 flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-medium text-ink transition hover:bg-hover active:bg-active"
+            >
+              <LogIn className="h-5 w-5 text-brand-600" />
+              Entrar
+            </Link>
+          </div>
+        </BottomSheet>
+      </>
     )
   }
 
@@ -39,7 +59,7 @@ export function UserMenu({ onImportClick }: UserMenuProps) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-full p-0.5 transition hover:bg-stone-100"
+        className="rounded-full p-0.5 transition hover:bg-hover"
         aria-expanded={open}
         aria-haspopup="dialog"
         aria-label="Menu da conta"
@@ -81,10 +101,12 @@ export function UserMenu({ onImportClick }: UserMenuProps) {
                 <p className="mt-0.5 truncate text-sm text-ink-muted">{email}</p>
               )}
               {!isConfigured && (
-                <p className="mt-1 text-xs text-amber-700">Modo local (sem nuvem)</p>
+                <p className="mt-1 text-xs text-warning-icon">Modo local (sem nuvem)</p>
               )}
             </div>
           </div>
+
+          <ThemeSelector />
 
           {onImportClick && (
             <button
@@ -93,7 +115,7 @@ export function UserMenu({ onImportClick }: UserMenuProps) {
                 onImportClick()
                 setOpen(false)
               }}
-              className="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-medium text-ink transition hover:bg-stone-50 active:bg-stone-100"
+              className="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-medium text-ink transition hover:bg-hover active:bg-active"
             >
               <Sparkles className="h-5 w-5 text-brand-600" />
               Importar plano
@@ -106,7 +128,7 @@ export function UserMenu({ onImportClick }: UserMenuProps) {
               void signOut()
               setOpen(false)
             }}
-            className="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-medium text-red-600 transition hover:bg-red-50 active:bg-red-100"
+            className="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-medium text-danger transition hover:bg-danger-subtle active:bg-danger-subtle/80"
           >
             <LogOut className="h-5 w-5" />
             Sair

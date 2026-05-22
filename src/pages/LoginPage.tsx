@@ -33,7 +33,7 @@ export function LoginPage() {
         </Button>
 
         {!isConfigured && (
-          <p className="rounded-xl bg-amber-50 px-3 py-2 text-center text-xs text-amber-800">
+          <p className="rounded-xl bg-warning-subtle px-3 py-2 text-center text-xs text-warning-text">
             Configure as variáveis Firebase em <code>.env</code> para login e
             sincronização na nuvem. Você ainda pode usar o app em modo local.
           </p>

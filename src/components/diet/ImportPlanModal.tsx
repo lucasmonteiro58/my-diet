@@ -130,7 +130,7 @@ export function ImportPlanModal({ open, onClose }: ImportPlanModalProps) {
               'rounded-xl px-3 py-2 text-sm font-medium transition',
               mode === 'gemini'
                 ? 'bg-brand-600 text-white'
-                : 'text-ink-muted hover:bg-stone-100',
+                : 'text-ink-muted hover:bg-hover',
             ].join(' ')}
           >
             Enviar PDF
@@ -145,7 +145,7 @@ export function ImportPlanModal({ open, onClose }: ImportPlanModalProps) {
               'rounded-xl px-3 py-2 text-sm font-medium transition',
               mode === 'manual'
                 ? 'bg-brand-600 text-white'
-                : 'text-ink-muted hover:bg-stone-100',
+                : 'text-ink-muted hover:bg-hover',
             ].join(' ')}
           >
             Manual
@@ -166,7 +166,7 @@ export function ImportPlanModal({ open, onClose }: ImportPlanModalProps) {
               </div>
 
               {!geminiReady && (
-                <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                <p className="rounded-xl bg-warning-subtle px-3 py-2 text-sm text-warning-text">
                   Adicione <code className="font-mono text-xs">VITE_GEMINI_API_KEY</code>{' '}
                   no arquivo <code className="font-mono text-xs">.env</code> e reinicie{' '}
                   <code className="font-mono text-xs">npm run dev</code>.
@@ -225,14 +225,14 @@ export function ImportPlanModal({ open, onClose }: ImportPlanModalProps) {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex gap-1 rounded-xl bg-stone-100 p-1">
+              <div className="flex gap-1 rounded-xl bg-inset p-1">
                 <button
                   type="button"
                   onClick={() => setManualStep('prompt')}
                   className={[
                     'flex-1 rounded-lg py-2 text-xs font-medium transition',
                     manualStep === 'prompt'
-                      ? 'bg-white text-ink shadow-sm'
+                      ? 'bg-surface-elevated text-ink shadow-sm'
                       : 'text-ink-muted',
                   ].join(' ')}
                 >
@@ -244,7 +244,7 @@ export function ImportPlanModal({ open, onClose }: ImportPlanModalProps) {
                   className={[
                     'flex-1 rounded-lg py-2 text-xs font-medium transition',
                     manualStep === 'json'
-                      ? 'bg-white text-ink shadow-sm'
+                      ? 'bg-surface-elevated text-ink shadow-sm'
                       : 'text-ink-muted',
                   ].join(' ')}
                 >
@@ -353,7 +353,7 @@ export function ImportPlanModal({ open, onClose }: ImportPlanModalProps) {
                     value={jsonText}
                     onChange={(e) => setJsonText(e.target.value)}
                     placeholder='{ "patientName": "...", "menus": [...] }'
-                    className="h-36 w-full resize-y rounded-2xl border border-border bg-white px-4 py-3 font-mono text-xs text-ink outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+                    className="h-36 w-full resize-y rounded-2xl border border-border bg-surface-elevated px-4 py-3 font-mono text-xs text-ink outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
                     spellCheck={false}
                   />
 
@@ -371,7 +371,7 @@ export function ImportPlanModal({ open, onClose }: ImportPlanModalProps) {
           )}
 
           {localError && (
-            <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
+            <p className="mt-3 rounded-xl bg-danger-subtle px-3 py-2 text-sm text-danger-text">
               {localError}
             </p>
           )}

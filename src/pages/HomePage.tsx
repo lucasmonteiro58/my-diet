@@ -88,7 +88,7 @@ export function HomePage() {
         <RecommendationsSection items={plan.generalRecommendations} />
 
         {error && (
-          <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+          <p className="rounded-xl bg-danger-subtle px-3 py-2 text-sm text-danger-text">{error}</p>
         )}
 
         {user && cloudSynced && !saving ? (

@@ -48,7 +48,7 @@ export function MealCard({ meal, defaultOpen = false }: MealCardProps) {
                   {prep.foods.map((food, foodIdx) => (
                     <li
                       key={`${food.name}-${foodIdx}`}
-                      className="flex items-start justify-between gap-3 rounded-xl bg-stone-50 px-3 py-2.5"
+                      className="flex items-start justify-between gap-3 rounded-xl bg-subtle px-3 py-2.5"
                     >
                       <span className="text-sm font-medium text-ink">{food.name}</span>
                       <span className="shrink-0 text-right text-xs text-ink-muted">
@@ -62,9 +62,9 @@ export function MealCard({ meal, defaultOpen = false }: MealCardProps) {
           ))}
 
           {meal.notes && (
-            <div className="flex gap-2 rounded-xl border border-amber-200/80 bg-amber-50/80 p-3">
-              <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
-              <p className="text-xs leading-relaxed text-amber-900">{meal.notes}</p>
+            <div className="flex gap-2 rounded-xl border border-warning-border bg-warning-subtle/80 p-3">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-warning-icon" />
+              <p className="text-xs leading-relaxed text-warning-text">{meal.notes}</p>
             </div>
           )}
         </div>

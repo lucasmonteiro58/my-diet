@@ -6,12 +6,50 @@ interface MacrosGridProps {
 }
 
 const items = [
-  { key: 'energyKcal', label: 'Energia', unit: 'kcal', icon: Flame, color: 'text-orange-600 bg-orange-50' },
-  { key: 'carbsG', label: 'Carboidratos', unit: 'g', icon: Wheat, color: 'text-amber-600 bg-amber-50' },
-  { key: 'proteinG', label: 'Proteínas', unit: 'g', icon: Zap, color: 'text-blue-600 bg-blue-50' },
-  { key: 'lipidsG', label: 'Lipídios', unit: 'g', icon: Droplets, color: 'text-violet-600 bg-violet-50' },
-  { key: 'fiberG', label: 'Fibras', unit: 'g', icon: Activity, color: 'text-emerald-600 bg-emerald-50' },
-  { key: 'weightKg', label: 'Peso', unit: 'kg', icon: Scale, color: 'text-stone-600 bg-stone-100' },
+  {
+    key: 'energyKcal',
+    label: 'Energia',
+    unit: 'kcal',
+    icon: Flame,
+    color:
+      'text-orange-600 bg-orange-50 dark:text-orange-300 dark:bg-orange-950/60',
+  },
+  {
+    key: 'carbsG',
+    label: 'Carboidratos',
+    unit: 'g',
+    icon: Wheat,
+    color: 'text-amber-600 bg-amber-50 dark:text-amber-300 dark:bg-amber-950/60',
+  },
+  {
+    key: 'proteinG',
+    label: 'Proteínas',
+    unit: 'g',
+    icon: Zap,
+    color: 'text-blue-600 bg-blue-50 dark:text-blue-300 dark:bg-blue-950/60',
+  },
+  {
+    key: 'lipidsG',
+    label: 'Lipídios',
+    unit: 'g',
+    icon: Droplets,
+    color: 'text-violet-600 bg-violet-50 dark:text-violet-300 dark:bg-violet-950/60',
+  },
+  {
+    key: 'fiberG',
+    label: 'Fibras',
+    unit: 'g',
+    icon: Activity,
+    color:
+      'text-emerald-600 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-950/60',
+  },
+  {
+    key: 'weightKg',
+    label: 'Peso',
+    unit: 'kg',
+    icon: Scale,
+    color: 'text-ink-muted bg-subtle',
+  },
 ] as const
 
 export function MacrosGrid({ macros }: MacrosGridProps) {

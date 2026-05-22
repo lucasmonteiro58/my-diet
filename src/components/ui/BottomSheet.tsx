@@ -87,7 +87,7 @@ export function BottomSheet({
               className="flex shrink-0 cursor-grab justify-center pt-3 pb-1 active:cursor-grabbing"
               onPointerDown={(e) => dragControls.start(e)}
             >
-              <div className="h-1 w-10 rounded-full bg-stone-300" aria-hidden />
+              <div className="h-1 w-10 rounded-full bg-handle" aria-hidden />
             </div>
 
             {title && (
@@ -96,7 +96,7 @@ export function BottomSheet({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-xl p-2 text-ink-muted transition hover:bg-stone-100"
+                  className="rounded-xl p-2 text-ink-muted transition hover:bg-hover"
                   aria-label="Fechar"
                 >
                   <X className="h-5 w-5" />

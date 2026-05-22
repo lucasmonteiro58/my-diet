@@ -45,12 +45,13 @@ function normalizeMeals(raw: unknown, menuIndex: number): Meal[] {
         })
       : []
 
+    const notes = asString(meal.notes)
     return {
       id: asString(meal.id, `meal-${menuIndex + 1}-${mealIndex + 1}`),
       name: asString(meal.name, 'Refeição'),
       time: asString(meal.time),
       preparations,
-      notes: asString(meal.notes) || undefined,
+      ...(notes ? { notes } : {}),
     }
   })
 }
