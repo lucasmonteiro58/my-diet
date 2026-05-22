@@ -1,7 +1,8 @@
 import { LogIn, LogOut, Sparkles } from 'lucide-react'
-import { useEffect, useId, useRef, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { BottomSheet } from '../ui/BottomSheet'
 
 interface UserMenuProps {
   onImportClick?: () => void
@@ -17,28 +18,6 @@ function getInitials(name: string): string {
 export function UserMenu({ onImportClick }: UserMenuProps) {
   const { user, signOut, isConfigured } = useAuth()
   const [open, setOpen] = useState(false)
-  const menuId = useId()
-  const rootRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-
-    const onPointerDown = (e: PointerEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
-
-    document.addEventListener('pointerdown', onPointerDown)
-    document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown)
-      document.removeEventListener('keydown', onKeyDown)
-    }
-  }, [open])
 
   if (!user) {
     return (
@@ -56,14 +35,13 @@ export function UserMenu({ onImportClick }: UserMenuProps) {
   const email = user.email ?? ''
 
   return (
-    <div ref={rootRef} className="relative">
+    <>
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen(true)}
         className="rounded-full p-0.5 transition hover:bg-stone-100"
         aria-expanded={open}
-        aria-haspopup="menu"
-        aria-controls={menuId}
+        aria-haspopup="dialog"
         aria-label="Menu da conta"
       >
         {user.photoURL ? (
@@ -79,51 +57,62 @@ export function UserMenu({ onImportClick }: UserMenuProps) {
         )}
       </button>
 
-      {open && (
-        <div
-          id={menuId}
-          role="menu"
-          className="absolute right-0 top-full z-30 mt-2 w-56 overflow-hidden rounded-2xl border border-border bg-surface-elevated py-1 shadow-lg shadow-stone-900/10"
-        >
-          <div className="border-b border-border px-4 py-3">
-            <p className="truncate text-sm font-semibold text-ink">{displayName}</p>
-            {email && (
-              <p className="mt-0.5 truncate text-xs text-ink-muted">{email}</p>
+      <BottomSheet
+        open={open}
+        onClose={() => setOpen(false)}
+        ariaLabel="Menu da conta"
+      >
+        <div className="flex flex-col px-2 pb-2">
+          <div className="flex items-center gap-4 border-b border-border px-3 py-4">
+            {user.photoURL ? (
+              <img
+                src={user.photoURL}
+                alt=""
+                className="h-14 w-14 rounded-full object-cover ring-2 ring-brand-100"
+              />
+            ) : (
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-lg font-semibold text-white">
+                {getInitials(displayName)}
+              </span>
             )}
-            {!isConfigured && (
-              <p className="mt-1 text-xs text-amber-700">Modo local (sem nuvem)</p>
-            )}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-base font-semibold text-ink">{displayName}</p>
+              {email && (
+                <p className="mt-0.5 truncate text-sm text-ink-muted">{email}</p>
+              )}
+              {!isConfigured && (
+                <p className="mt-1 text-xs text-amber-700">Modo local (sem nuvem)</p>
+              )}
+            </div>
           </div>
 
           {onImportClick && (
             <button
               type="button"
-              role="menuitem"
               onClick={() => {
                 onImportClick()
                 setOpen(false)
               }}
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-ink transition hover:bg-stone-50"
+              className="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-medium text-ink transition hover:bg-stone-50 active:bg-stone-100"
             >
-              <Sparkles className="h-4 w-4 text-brand-600" />
+              <Sparkles className="h-5 w-5 text-brand-600" />
               Importar plano
             </button>
           )}
 
           <button
             type="button"
-            role="menuitem"
             onClick={() => {
               void signOut()
               setOpen(false)
             }}
-            className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-600 transition hover:bg-red-50"
+            className="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-medium text-red-600 transition hover:bg-red-50 active:bg-red-100"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-5 w-5" />
             Sair
           </button>
         </div>
-      )}
-    </div>
+      </BottomSheet>
+    </>
   )
 }

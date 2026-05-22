@@ -7,7 +7,6 @@ import {
   Loader2,
   Sparkles,
   Upload,
-  X,
 } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { buildDietExtractionPrompt, DIET_JSON_FILENAME } from '../../lib/ai-prompt'
@@ -15,6 +14,7 @@ import { GEMINI_MODEL_CHAIN, isGeminiConfigured } from '../../lib/gemini'
 import { useDiet } from '../../contexts/DietContext'
 import { toast } from '../../lib/toast'
 import { Button } from '../ui/Button'
+import { BottomSheet } from '../ui/BottomSheet'
 
 interface ImportPlanModalProps {
   open: boolean
@@ -39,8 +39,6 @@ export function ImportPlanModal({ open, onClose }: ImportPlanModalProps) {
 
   const geminiReady = isGeminiConfigured()
   const manualPrompt = buildDietExtractionPrompt()
-
-  if (!open) return null
 
   const resetAndClose = () => {
     setJsonText('')
@@ -119,24 +117,9 @@ export function ImportPlanModal({ open, onClose }: ImportPlanModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 pt-[max(1rem,var(--safe-top))] pb-[max(1rem,var(--safe-bottom))] sm:items-center">
-      <div
-        className="flex max-h-[90dvh] w-full max-w-lg flex-col overflow-hidden rounded-3xl bg-surface-elevated shadow-2xl"
-        role="dialog"
-        aria-modal="true"
-      >
-        <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h2 className="text-lg font-bold text-ink">Importar plano</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl p-2 text-ink-muted hover:bg-stone-100"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="flex gap-1 border-b border-border px-5 py-2">
+    <BottomSheet open={open} onClose={onClose} title="Importar plano">
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex shrink-0 gap-1 border-b border-border px-5 py-2">
           <button
             type="button"
             onClick={() => {
@@ -169,7 +152,7 @@ export function ImportPlanModal({ open, onClose }: ImportPlanModalProps) {
           </button>
         </div>
 
-        <div className="overflow-y-auto px-5 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
           {mode === 'gemini' ? (
             <div className="space-y-4">
               <div className="flex gap-3 rounded-2xl bg-brand-50 p-4">
@@ -394,6 +377,6 @@ export function ImportPlanModal({ open, onClose }: ImportPlanModalProps) {
           )}
         </div>
       </div>
-    </div>
+    </BottomSheet>
   )
 }
