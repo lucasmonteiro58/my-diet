@@ -83,35 +83,43 @@ Quality: JSON must parse with JSON.parse; at least 1 menu with meals; patientNam
 
 /**
  * Prompt for manual use in Gemini web / ChatGPT.
- * User attaches the PDF and asks the AI to produce a downloadable JSON file.
+ * User attaches the PDF and copies the JSON from a fenced code block in the reply.
  */
 export function buildDietExtractionPrompt(): string {
   return `You are a data extraction assistant. The user attached a Brazilian nutrition meal plan PDF ("Plano Alimentar").
 
-Your task: extract ALL information and deliver it as a **downloadable JSON file** for the My Diet mobile app.
+Extract ALL data for the My Diet app and reply with **one** markdown code block — nothing else before or after it.
 
-## Required deliverables (both)
+## Output format (mandatory)
 
-1. **JSON file (primary)** — Create and offer a downloadable file named exactly:
-   \`${DIET_JSON_FILENAME}\`
-   - In Gemini: use Canvas / export / "download file" if available, or provide a single \`.json\` attachment the user can save.
-   - In ChatGPT: use Advanced Data Analysis to write the file and let the user download it.
-   - The file must be valid UTF-8 JSON (pretty-printed with 2-space indent is OK).
+Put the full JSON object inside a single fenced block, exactly like this:
 
-2. **Same JSON in the chat (backup)** — After the file, paste the raw JSON object once more so the user can copy if download fails. No markdown fences in the pasted JSON block.
+\`\`\`json
+{
+  "patientName": "...",
+  ...
+}
+\`\`\`
 
-Do NOT wrap the downloadable file content in \`\`\`json\`\`\`. Do NOT add explanations inside the JSON.
+Rules for the block:
+- Opening fence must be \`\`\`json (lowercase) on its own line.
+- Closing fence must be \`\`\` on its own line.
+- Inside the fence: valid JSON only — no comments, no trailing commas, no \`null\` (use \`""\` for empty strings).
+- Pretty-print with 2-space indent.
+- Do NOT add any text, headings, or explanations outside the code block.
+- Do NOT add a second copy of the JSON outside the fence.
+- Do NOT offer a separate download/file unless the user asks; the code block is the deliverable.
 
 ${EXTRACTION_RULES}
 
 ${JSON_SCHEMA}
 
-## Quality check before sending
+## Quality check (before replying)
 
 - JSON parses with JSON.parse without errors
 - At least 1 menu with meals
 - Every meal has preparations with at least one food when the PDF lists foods
 - patientName and date match the PDF
 
-Start by confirming you read the PDF, then provide the file \`${DIET_JSON_FILENAME}\`, then the raw JSON backup.`
+Reply with only the \`\`\`json code block.`
 }

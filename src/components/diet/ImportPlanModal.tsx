@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { buildDietExtractionPrompt, DIET_JSON_FILENAME } from '../../lib/ai-prompt'
-import { isGeminiConfigured } from '../../lib/gemini'
+import { DEFAULT_GEMINI_MODEL, isGeminiConfigured } from '../../lib/gemini'
 import { useDiet } from '../../contexts/DietContext'
 import { Button } from '../ui/Button'
 
@@ -186,6 +186,22 @@ export function ImportPlanModal({ open, onClose }: ImportPlanModalProps) {
                 </p>
               )}
 
+              {geminiReady && (
+                <p className="text-xs leading-relaxed text-ink-muted">
+                  Modelo: <strong>{DEFAULT_GEMINI_MODEL}</strong> (cota gratuita: ~20
+                  envios/dia). Limites em{' '}
+                  <a
+                    href="https://aistudio.google.com/rate-limit"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-brand-700 underline"
+                  >
+                    AI Studio
+                  </a>
+                  .
+                </p>
+              )}
+
               <input
                 ref={pdfInputRef}
                 type="file"
@@ -280,7 +296,7 @@ export function ImportPlanModal({ open, onClose }: ImportPlanModalProps) {
                         3
                       </span>
                       <span>
-                        Baixe <strong>{DIET_JSON_FILENAME}</strong> ou copie o JSON e vá em{' '}
+                        Copie o JSON do bloco <strong>```json</strong> na resposta e cole em{' '}
                         <strong>Colar JSON</strong>.
                       </span>
                     </li>

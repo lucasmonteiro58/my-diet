@@ -45,14 +45,14 @@ Add `localhost` and your production domain under Authentication → Settings →
 
 ### Automatic (default)
 
-1. Add `VITE_GEMINI_API_KEY` to `.env` ([get a key](https://aistudio.google.com/apikey))
+1. Add `VITE_GEMINI_API_KEY` to `.env` ([get a key](https://aistudio.google.com/apikey)). Default model: `gemini-2.5-flash-lite` (check [rate limits](https://aistudio.google.com/rate-limit))
 2. **Importar plano** → **Enviar PDF** → select your nutrition PDF
 3. Save locally or to Firebase
 
 ### Manual (copy/paste)
 
 1. **Importar plano** → **Manual** → copy prompt → use [Gemini web](https://gemini.google.com) with the PDF
-2. Paste or upload the returned JSON in **Colar JSON**
+2. Copy the JSON from the ` ```json ` code block in Gemini’s reply (or upload `plano-alimentar.json`) in **Colar JSON**
 
 The prompt and JSON schema live in `src/lib/ai-prompt.ts` and `src/lib/import-plan.ts`.
 
