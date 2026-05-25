@@ -1,11 +1,27 @@
-import { Leaf } from 'lucide-react'
+import { Leaf, Users } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { useSharedDiets } from '../../contexts/SharedDietsContext'
 import { UserMenu } from './UserMenu'
 
 interface AppShellProps {
   children: ReactNode
   onImportClick?: () => void
+}
+
+function ViewingBanner() {
+  const { viewingPlan } = useSharedDiets()
+  if (!viewingPlan || viewingPlan.isOwn) return null
+
+  return (
+    <div className="flex items-center justify-center gap-2 bg-brand-600 px-4 py-2 text-xs font-medium text-white">
+      <Users className="h-3.5 w-3.5 shrink-0" />
+      <span>
+        Você está visualizando o plano de{' '}
+        <span className="font-bold">{viewingPlan.plan.patientName}</span>
+      </span>
+    </div>
+  )
 }
 
 export function AppShell({ children, onImportClick }: AppShellProps) {
@@ -25,6 +41,7 @@ export function AppShell({ children, onImportClick }: AppShellProps) {
 
           <UserMenu onImportClick={onImportClick} />
         </div>
+        <ViewingBanner />
       </header>
 
       <main className="flex-1 px-4 pt-4 pb-[max(2rem,var(--safe-bottom))]">

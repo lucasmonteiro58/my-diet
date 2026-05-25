@@ -1,9 +1,10 @@
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { collection, deleteDoc, doc, getDocs, getDoc, query, setDoc, where } from 'firebase/firestore'
 import { stripUndefinedDeep } from '../lib/firestore-data'
 import { db, isFirebaseConfigured } from '../lib/firebase'
 import type { DietPlan } from '../types/diet'
 
 const SHARED = 'sharedPlans'
+const ACCESS = 'sharedAccess'
 const CACHE_KEY = 'my-diet-share-code-cache'
 
 interface ShareCodeCache {
@@ -94,6 +95,41 @@ export async function syncSharedPlanIfExists(
   } catch {
     // Non-critical — don't surface errors for background sync
   }
+}
+
+export interface SharedAccessDoc {
+  userId: string
+  code: string
+  addedAt: string
+  planData: DietPlan
+}
+
+function accessDocId(userId: string, code: string): string {
+  return `${userId}_${code}`
+}
+
+export async function saveSharedAccess(
+  userId: string,
+  code: string,
+  plan: DietPlan,
+  addedAt: string,
+): Promise<void> {
+  if (!db || !isFirebaseConfigured) return
+  const ref = doc(db, ACCESS, accessDocId(userId, code))
+  await setDoc(ref, stripUndefinedDeep({ userId, code, addedAt, planData: plan }))
+}
+
+export async function loadSharedAccessList(userId: string): Promise<SharedAccessDoc[]> {
+  if (!db || !isFirebaseConfigured) return []
+  const snap = await getDocs(
+    query(collection(db, ACCESS), where('userId', '==', userId)),
+  )
+  return snap.docs.map((d) => d.data() as SharedAccessDoc)
+}
+
+export async function deleteSharedAccess(userId: string, code: string): Promise<void> {
+  if (!db || !isFirebaseConfigured) return
+  await deleteDoc(doc(db, ACCESS, accessDocId(userId, code)))
 }
 
 export async function fetchSharedPlan(
