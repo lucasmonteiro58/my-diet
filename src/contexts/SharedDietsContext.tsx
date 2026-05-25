@@ -13,8 +13,6 @@ import type { SharedPlanEntry, ViewingPlan } from '../types/diet'
 import { useAuth } from './AuthContext'
 import { useDiet } from './DietContext'
 
-export type { SharedPlanEntry, ViewingPlan }
-
 const LOCAL_KEY = 'my-diet-shared-plans'
 
 interface SharedDietsContextValue {
