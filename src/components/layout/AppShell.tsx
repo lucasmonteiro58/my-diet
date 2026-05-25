@@ -1,5 +1,5 @@
 import { Leaf, Users } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useSharedDiets } from '../../contexts/SharedDietsContext'
 import { UserMenu } from './UserMenu'
@@ -11,14 +11,25 @@ interface AppShellProps {
 
 function ViewingBanner() {
   const { viewingPlan } = useSharedDiets()
-  if (!viewingPlan || viewingPlan.isOwn) return null
+  const visible = !!(viewingPlan && !viewingPlan.isOwn)
+
+  useEffect(() => {
+    if (visible) {
+      document.documentElement.style.setProperty('--banner-height', '33px')
+    } else {
+      document.documentElement.style.removeProperty('--banner-height')
+    }
+    return () => document.documentElement.style.removeProperty('--banner-height')
+  }, [visible])
+
+  if (!visible) return null
 
   return (
     <div className="flex items-center justify-center gap-2 bg-brand-600 px-4 py-2 text-xs font-medium text-white">
       <Users className="h-3.5 w-3.5 shrink-0" />
       <span>
         Você está visualizando o plano de{' '}
-        <span className="font-bold">{viewingPlan.plan.patientName}</span>
+        <span className="font-bold">{viewingPlan!.plan.patientName}</span>
       </span>
     </div>
   )

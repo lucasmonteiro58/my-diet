@@ -14,7 +14,7 @@ export function TextField({ label, hint, id, className = '', ...props }: TextFie
       <input
         id={fieldId}
         className={[
-          'w-full rounded-2xl border border-border bg-surface-elevated px-4 py-3 text-sm text-ink outline-none transition',
+          'w-full rounded-2xl border border-border bg-surface-elevated px-4 py-3 text-base text-ink outline-none transition',
           'placeholder:text-ink-muted/60 focus:border-brand-400 focus:ring-2 focus:ring-brand-100',
           className,
         ].join(' ')}
