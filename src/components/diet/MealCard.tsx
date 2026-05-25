@@ -127,7 +127,7 @@ export function MealCard({ meal, menuId, defaultOpen = false, onEditFood }: Meal
                         <button
                           type="button"
                           onClick={() =>
-                            onEditFood({
+                            onEditFood?.({
                               location: {
                                 menuId,
                                 mealId: meal.id,
@@ -160,7 +160,7 @@ export function MealCard({ meal, menuId, defaultOpen = false, onEditFood }: Meal
                 <button
                   type="button"
                   onClick={() =>
-                    onEditFood({
+                    onEditFood?.({
                       location: { menuId, mealId: meal.id, prepIndex },
                       preparationName: prep.name,
                       mealName: meal.name,
