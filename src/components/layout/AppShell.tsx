@@ -19,7 +19,7 @@ function ViewingBanner() {
     } else {
       document.documentElement.style.removeProperty('--banner-height')
     }
-    return () => document.documentElement.style.removeProperty('--banner-height')
+    return () => { document.documentElement.style.removeProperty('--banner-height') }
   }, [visible])
 
   if (!visible) return null
