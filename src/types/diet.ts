@@ -67,3 +67,15 @@ export interface FoodLocation {
   prepIndex: number
   foodId?: string
 }
+
+export interface SharedPlanEntry {
+  code: string
+  addedAt: string
+  plan: DietPlan
+}
+
+export interface ViewingPlan {
+  plan: DietPlan
+  isOwn: boolean
+  shareCode?: string
+}

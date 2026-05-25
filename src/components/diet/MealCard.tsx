@@ -1,4 +1,5 @@
 import { ChevronDown, Clock, Info, Pencil, Plus, UtensilsCrossed } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { useEditMode } from '../../contexts/EditModeContext'
 import { parseFoodQuantity } from '../../lib/format-quantity'
@@ -9,7 +10,7 @@ interface MealCardProps {
   meal: Meal
   menuId: string
   defaultOpen?: boolean
-  onEditFood: (target: FoodEditTarget) => void
+  onEditFood?: (target: FoodEditTarget) => void
 }
 
 function editLabelText(label: string): string {
@@ -58,6 +59,8 @@ export function MealCard({ meal, menuId, defaultOpen = false, onEditFood }: Meal
   const [open, setOpen] = useState(defaultOpen)
   const { enabled: editMode } = useEditMode()
 
+  const transition = { duration: 0.35, ease: [0.4, 0, 0.2, 1] } as const
+
   return (
     <article className="overflow-hidden rounded-2xl border border-border bg-surface-elevated shadow-sm">
       <button
@@ -77,12 +80,21 @@ export function MealCard({ meal, menuId, defaultOpen = false, onEditFood }: Meal
             </p>
           )}
         </div>
-        <ChevronDown
-          className={`h-5 w-5 shrink-0 text-ink-muted transition ${open ? 'rotate-180' : ''}`}
-        />
+        <motion.div
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={transition}
+        >
+          <ChevronDown className="h-5 w-5 shrink-0 text-ink-muted" />
+        </motion.div>
       </button>
 
-      {open && (
+      {/* Always rendered — framer-motion can measure height reliably */}
+      <motion.div
+        initial={false}
+        animate={open ? { height: 'auto', opacity: 1 } : { height: 0, opacity: 0 }}
+        transition={transition}
+        style={{ overflow: 'hidden' }}
+      >
         <div className="space-y-4 border-t border-border px-4 pb-4 pt-3">
           {meal.preparations.map((prep, prepIndex) => (
             <div key={`${prep.name}-${prepIndex}`}>
@@ -170,7 +182,7 @@ export function MealCard({ meal, menuId, defaultOpen = false, onEditFood }: Meal
             </div>
           )}
         </div>
-      )}
+      </motion.div>
     </article>
   )
 }

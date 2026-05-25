@@ -1,31 +1,53 @@
 import { Check, CloudUpload, Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { AddSharedPlanSheet } from '../components/diet/AddSharedPlanSheet'
 import { DietHeader } from '../components/diet/DietHeader'
+import { DietSwitcherSheet } from '../components/diet/DietSwitcherSheet'
 import { MacrosGrid } from '../components/diet/MacrosGrid'
 import { FoodEditSheet, type FoodEditTarget } from '../components/diet/FoodEditSheet'
 import { MealCard } from '../components/diet/MealCard'
 import { MenuTabs } from '../components/diet/MenuTabs'
 import { ImportPlanModal } from '../components/diet/ImportPlanModal'
 import { RecommendationsSection } from '../components/diet/RecommendationsSection'
+import { SharePlanSheet } from '../components/diet/SharePlanSheet'
 import { SupplementsSection } from '../components/diet/SupplementsSection'
 import { AppShell } from '../components/layout/AppShell'
 import { Button } from '../components/ui/Button'
 import { useAuth } from '../contexts/AuthContext'
 import { useDiet } from '../contexts/DietContext'
 import { useEditMode } from '../contexts/EditModeContext'
+import { useSharedDiets } from '../contexts/SharedDietsContext'
 
 export function HomePage() {
   const { user } = useAuth()
-  const { plan, loading, saving, cloudSynced, error, savePlan } = useDiet()
+  const { plan: ownPlan, loading, saving, cloudSynced, error, savePlan } = useDiet()
+  const { viewingPlan } = useSharedDiets()
+
   const [uploadOpen, setUploadOpen] = useState(false)
+  const [switcherOpen, setSwitcherOpen] = useState(false)
+  const [addSharedOpen, setAddSharedOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
   const [foodEdit, setFoodEdit] = useState<FoodEditTarget | null>(null)
-  const { enabled: editMode } = useEditMode()
+  const { enabled: editMode, setEnabled: setEditMode } = useEditMode()
+
+  const isOwn = viewingPlan?.isOwn ?? true
+  const plan = viewingPlan?.plan ?? null
+
+  // Disable edit mode when viewing a shared (read-only) plan
+  useEffect(() => {
+    if (!isOwn && editMode) setEditMode(false)
+  }, [isOwn, editMode, setEditMode])
 
   useEffect(() => {
     if (!editMode) setFoodEdit(null)
   }, [editMode])
+
+  // Reset menu tab when the active plan changes
+  useEffect(() => {
+    setActiveMenuId(null)
+  }, [viewingPlan?.shareCode])
 
   const activeMenu =
     plan?.menus.find((m) => m.id === (activeMenuId ?? plan.menus[0]?.id)) ??
@@ -42,7 +64,7 @@ export function HomePage() {
     )
   }
 
-  if (!plan) {
+  if (!ownPlan) {
     return (
       <AppShell onImportClick={() => setUploadOpen(true)}>
         <div className="flex flex-col items-center py-16 text-center">
@@ -70,10 +92,17 @@ export function HomePage() {
     )
   }
 
+  if (!plan) return null
+
   return (
     <AppShell onImportClick={() => setUploadOpen(true)}>
       <div className="space-y-6">
-        <DietHeader plan={plan} />
+        <DietHeader
+          plan={plan}
+          isOwn={isOwn}
+          onSwitchPlan={() => setSwitcherOpen(true)}
+          onShare={user && isOwn ? () => setShareOpen(true) : undefined}
+        />
 
         <section className="space-y-3">
           <h2 className="text-sm font-bold uppercase tracking-wide text-ink-muted">
@@ -91,7 +120,7 @@ export function HomePage() {
                 meal={meal}
                 menuId={activeMenu.id}
                 defaultOpen={idx === 0}
-                onEditFood={setFoodEdit}
+                onEditFood={isOwn ? setFoodEdit : undefined}
               />
             ))}
           </div>
@@ -102,38 +131,58 @@ export function HomePage() {
         <RecommendationsSection items={plan.generalRecommendations} />
 
         {error && (
-          <p className="rounded-xl bg-danger-subtle px-3 py-2 text-sm text-danger-text">{error}</p>
+          <p className="rounded-xl bg-danger-subtle px-3 py-2 text-sm text-danger-text">
+            {error}
+          </p>
         )}
 
-        {user && cloudSynced && !saving ? (
-          <Button fullWidth variant="secondary" disabled className="cursor-default">
-            <Check className="h-4 w-4" />
-            Salvo na nuvem
-          </Button>
-        ) : (
-          <Button
-            fullWidth
-            variant="outline"
-            disabled={saving}
-            onClick={() => void savePlan()}
-          >
-            {saving ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Salvando...
-              </>
-            ) : (
-              <>
-                <CloudUpload className="h-4 w-4" />
-                {user ? 'Salvar na nuvem' : 'Salvar localmente'}
-              </>
-            )}
-          </Button>
+        {isOwn && (
+          user && cloudSynced && !saving ? (
+            <Button fullWidth variant="secondary" disabled className="cursor-default">
+              <Check className="h-4 w-4" />
+              Salvo na nuvem
+            </Button>
+          ) : (
+            <Button
+              fullWidth
+              variant="outline"
+              disabled={saving}
+              onClick={() => void savePlan()}
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <CloudUpload className="h-4 w-4" />
+                  {user ? 'Salvar na nuvem' : 'Salvar localmente'}
+                </>
+              )}
+            </Button>
+          )
         )}
       </div>
 
       <ImportPlanModal open={uploadOpen} onClose={() => setUploadOpen(false)} />
       <FoodEditSheet target={foodEdit} onClose={() => setFoodEdit(null)} />
+
+      <DietSwitcherSheet
+        open={switcherOpen}
+        onClose={() => setSwitcherOpen(false)}
+        onAddNew={() => {
+          setSwitcherOpen(false)
+          setAddSharedOpen(true)
+        }}
+      />
+
+      <AddSharedPlanSheet
+        open={addSharedOpen}
+        onClose={() => setAddSharedOpen(false)}
+      />
+
+      <SharePlanSheet open={shareOpen} onClose={() => setShareOpen(false)} />
     </AppShell>
   )
 }

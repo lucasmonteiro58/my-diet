@@ -91,7 +91,7 @@ export function BottomSheet({
             </div>
 
             {title && (
-              <div className="flex shrink-0 items-center justify-between border-b border-border px-5 pb-3">
+              <div className="flex shrink-0 items-center justify-between px-5 pb-3">
                 <h2 className="text-lg font-bold text-ink">{title}</h2>
                 <button
                   type="button"

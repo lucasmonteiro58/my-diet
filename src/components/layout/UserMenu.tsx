@@ -2,6 +2,7 @@ import { LogIn, LogOut, Settings, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSharedDiets } from '../../contexts/SharedDietsContext'
 import { EditModeToggle } from '../settings/EditModeToggle'
 import { ThemeSelector } from '../theme/ThemeSelector'
 import { BottomSheet } from '../ui/BottomSheet'
@@ -19,6 +20,8 @@ function getInitials(name: string): string {
 
 export function UserMenu({ onImportClick }: UserMenuProps) {
   const { user, signOut, isConfigured } = useAuth()
+  const { viewingPlan } = useSharedDiets()
+  const isOwn = viewingPlan?.isOwn ?? true
   const [open, setOpen] = useState(false)
 
   if (!user) {
@@ -38,7 +41,7 @@ export function UserMenu({ onImportClick }: UserMenuProps) {
         <BottomSheet open={open} onClose={() => setOpen(false)} ariaLabel="Configurações">
           <div className="flex flex-col px-2 pb-2">
             <ThemeSelector />
-            <EditModeToggle />
+            {isOwn && <EditModeToggle />}
             <Link
               to="/login"
               onClick={() => setOpen(false)}
@@ -85,7 +88,7 @@ export function UserMenu({ onImportClick }: UserMenuProps) {
         ariaLabel="Menu da conta"
       >
         <div className="flex flex-col px-2 pb-2">
-          <div className="flex items-center gap-4 border-b border-border px-3 py-4">
+          <div className="flex items-center gap-4 px-3 py-4">
             {user.photoURL ? (
               <img
                 src={user.photoURL}
@@ -109,7 +112,7 @@ export function UserMenu({ onImportClick }: UserMenuProps) {
           </div>
 
           <ThemeSelector />
-          <EditModeToggle />
+          {isOwn && <EditModeToggle />}
 
           {onImportClick && (
             <button

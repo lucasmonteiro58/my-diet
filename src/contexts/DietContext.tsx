@@ -16,6 +16,7 @@ import {
   getCurrentUserDietPlan,
   saveDietPlanAsCurrent,
 } from '../services/dietService'
+import { syncSharedPlanIfExists } from '../services/shareService'
 import { ensureFoodIds, removeFoodItem, upsertFoodItem } from '../lib/plan-food'
 import type { DietPlan, FoodLocation } from '../types/diet'
 import { useAuth } from './AuthContext'
@@ -134,6 +135,7 @@ export function DietProvider({ children }: { children: ReactNode }) {
         const saved = await saveDietPlanAsCurrent(user.uid, planToSave)
         applyPlan(saved, true)
         toast.success('Plano salvo na nuvem', 'Sincronizado com sua conta Google.')
+        void syncSharedPlanIfExists(user.uid, saved)
         return saved
       } catch (e) {
         const message = formatFirebaseError(e)

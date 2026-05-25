@@ -12,5 +12,17 @@ service cloud.firestore {
       allow update, delete: if request.auth != null
         && resource.data.userId == request.auth.uid;
     }
+
+    match /sharedPlans/{code} {
+      // Anyone authenticated can read a shared plan (to access it by code).
+      allow read: if request.auth != null;
+
+      // Only the owner can create or overwrite their shared plan.
+      allow create: if request.auth != null
+        && request.resource.data.ownerId == request.auth.uid;
+
+      allow update, delete: if request.auth != null
+        && resource.data.ownerId == request.auth.uid;
+    }
   }
 }

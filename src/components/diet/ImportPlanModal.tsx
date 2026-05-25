@@ -119,7 +119,7 @@ export function ImportPlanModal({ open, onClose }: ImportPlanModalProps) {
   return (
     <BottomSheet open={open} onClose={onClose} title="Importar plano">
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex shrink-0 gap-1 border-b border-border px-5 py-2">
+        <div className="flex shrink-0 gap-1 px-5 py-2">
           <button
             type="button"
             onClick={() => {
