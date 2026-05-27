@@ -13,11 +13,19 @@ import {
   signOut as firebaseSignOut,
   type User,
 } from 'firebase/auth'
+import {
+  clearAuthProfile,
+  loadCachedAuthProfile,
+  persistAuthProfile,
+  type AuthProfile,
+} from '../lib/auth-cache'
 import { auth, googleProvider, isFirebaseConfigured } from '../lib/firebase'
 import { toast } from '../lib/toast'
 
+export type { AuthProfile }
+
 interface AuthContextValue {
-  user: User | null
+  user: AuthProfile | null
   loading: boolean
   isConfigured: boolean
   signInWithGoogle: () => Promise<void>
@@ -26,9 +34,18 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
+function toAuthProfile(user: User): AuthProfile {
+  return {
+    uid: user.uid,
+    displayName: user.displayName,
+    email: user.email,
+    photoURL: user.photoURL,
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<AuthProfile | null>(loadCachedAuthProfile)
+  const [loading, setLoading] = useState(!!auth)
 
   useEffect(() => {
     if (!auth) {
@@ -36,7 +53,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
     const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
-      setUser(nextUser)
+      if (nextUser) {
+        const profile = toAuthProfile(nextUser)
+        setUser(profile)
+        persistAuthProfile(profile)
+      } else {
+        setUser(null)
+        clearAuthProfile()
+      }
       setLoading(false)
     })
     return unsubscribe

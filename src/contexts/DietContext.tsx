@@ -86,12 +86,20 @@ function isPlanCloudSynced(plan: DietPlan | null): boolean {
   return meta?.planId === plan.id && meta.updatedAt === plan.updatedAt
 }
 
+function getInitialDietState(): { plan: DietPlan | null; cloudSynced: boolean } {
+  const local = loadLocalPlan()
+  if (!local) return { plan: null, cloudSynced: false }
+  const withIds = ensureFoodIds(local)
+  return { plan: withIds, cloudSynced: isPlanCloudSynced(withIds) }
+}
+
 export function DietProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth()
-  const [plan, setPlanState] = useState<DietPlan | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { user, loading: authLoading } = useAuth()
+  const initial = getInitialDietState()
+  const [plan, setPlanState] = useState<DietPlan | null>(initial.plan)
+  const [loading, setLoading] = useState(!initial.plan)
   const [saving, setSaving] = useState(false)
-  const [cloudSynced, setCloudSynced] = useState(false)
+  const [cloudSynced, setCloudSynced] = useState(initial.cloudSynced)
   const [error, setError] = useState<string | null>(null)
 
   const applyPlan = useCallback((next: DietPlan, synced: boolean) => {
@@ -151,10 +159,13 @@ export function DietProvider({ children }: { children: ReactNode }) {
   )
 
   useEffect(() => {
+    if (authLoading) return
+
     let cancelled = false
+    const hasCachedPlan = !!loadLocalPlan()
 
     async function load() {
-      setLoading(true)
+      if (!hasCachedPlan) setLoading(true)
       setError(null)
       try {
         if (user && canUseCloud()) {
@@ -165,27 +176,32 @@ export function DietProvider({ children }: { children: ReactNode }) {
           }
         }
         const local = loadLocalPlan()
-        if (!cancelled) {
-          setPlanState(local)
-          setCloudSynced(isPlanCloudSynced(local))
+        if (!cancelled && local) {
+          const withIds = ensureFoodIds(local)
+          setPlanState(withIds)
+          setCloudSynced(isPlanCloudSynced(withIds))
         }
       } catch (e) {
         if (!cancelled) {
           const local = loadLocalPlan()
-          setPlanState(local)
-          setCloudSynced(isPlanCloudSynced(local))
-          if (!local) setError(formatFirebaseError(e))
+          if (local) {
+            const withIds = ensureFoodIds(local)
+            setPlanState(withIds)
+            setCloudSynced(isPlanCloudSynced(withIds))
+          } else {
+            setError(formatFirebaseError(e))
+          }
         }
       } finally {
         if (!cancelled) setLoading(false)
       }
     }
 
-    load()
+    void load()
     return () => {
       cancelled = true
     }
-  }, [user, applyPlan])
+  }, [user, authLoading, applyPlan])
 
   const importFromJson = useCallback(
     async (json: string) => {

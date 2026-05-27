@@ -53,7 +53,7 @@ export function HomePage() {
     plan?.menus.find((m) => m.id === (activeMenuId ?? plan.menus[0]?.id)) ??
     plan?.menus[0]
 
-  if (loading) {
+  if (loading && !ownPlan) {
     return (
       <AppShell>
         <div className="flex flex-col items-center justify-center gap-3 py-24">
