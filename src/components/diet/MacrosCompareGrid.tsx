@@ -55,14 +55,26 @@ interface MacrosCompareGridProps {
   labelB: string
 }
 
+function roundMacro(value: number, unit: string): number {
+  if (unit === 'kcal') return Math.round(value)
+  return Math.round(value * 10) / 10
+}
+
+function formatMacroValue(value: number, unit: string): string {
+  const rounded = roundMacro(value, unit)
+  return unit === 'kcal' ? String(rounded) : rounded.toFixed(1).replace(/\.0$/, '')
+}
+
 function formatDelta(delta: number, unit: string): string {
-  if (delta === 0) return '0'
-  const sign = delta > 0 ? '+' : ''
-  return `${sign}${delta}${unit === 'kcal' ? '' : ''}`
+  const rounded = roundMacro(delta, unit)
+  if (rounded === 0) return '0'
+  const sign = rounded > 0 ? '+' : '-'
+  return `${sign}${formatMacroValue(Math.abs(rounded), unit)}`
 }
 
 function DeltaBadge({ delta, unit }: { delta: number; unit: string }) {
-  if (delta === 0) {
+  const rounded = roundMacro(delta, unit)
+  if (rounded === 0) {
     return (
       <span className="inline-flex items-center gap-0.5 rounded-full bg-subtle px-2 py-0.5 text-xs font-medium text-ink-muted">
         <Minus className="h-3 w-3" />
@@ -71,7 +83,7 @@ function DeltaBadge({ delta, unit }: { delta: number; unit: string }) {
     )
   }
 
-  const increased = delta > 0
+  const increased = rounded > 0
   return (
     <span
       className={[
@@ -86,7 +98,7 @@ function DeltaBadge({ delta, unit }: { delta: number; unit: string }) {
       ) : (
         <TrendingDown className="h-3 w-3" />
       )}
-      {formatDelta(delta, unit)}
+      {formatDelta(rounded, unit)}
       <span className="font-normal opacity-80">{unit}</span>
     </span>
   )
@@ -124,12 +136,12 @@ export function MacrosCompareGrid({ deltas, labelA, labelB }: MacrosCompareGridP
               <p className="mt-2 text-xs font-medium text-ink-muted">{label}</p>
               <div className="mt-1 flex items-baseline gap-2 tabular-nums">
                 <span className="text-base font-semibold text-ink-muted">
-                  {delta.a}
+                  {formatMacroValue(delta.a, unit)}
                   <span className="ml-0.5 text-xs font-normal">{unit}</span>
                 </span>
                 <span className="text-xs text-ink-muted">→</span>
                 <span className="text-lg font-bold text-ink">
-                  {delta.b}
+                  {formatMacroValue(delta.b, unit)}
                   <span className="ml-0.5 text-xs font-normal text-ink-muted">
                     {unit}
                   </span>
