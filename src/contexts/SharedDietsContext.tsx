@@ -26,6 +26,7 @@ interface SharedDietsContextValue {
   sharedPlans: SharedPlanEntry[]
   activePlanId: 'own' | string
   setActivePlanId: (id: 'own' | string) => void
+  cycleActivePlan: () => void
   viewingPlan: ViewingPlan | null
   addByCode: (code: string) => Promise<void>
   removeSharedPlan: (code: string) => void
@@ -174,11 +175,24 @@ export function SharedDietsProvider({ children }: { children: ReactNode }) {
     }
   }, [user, ownPlan])
 
+  const cycleActivePlan = useCallback(() => {
+    const ids: ('own' | string)[] = []
+    if (ownPlan) ids.push('own')
+    ids.push(...sharedPlans.map((p) => p.code))
+    if (ids.length < 2) return
+
+    const current = effectiveActivePlanId
+    const index = ids.indexOf(current)
+    const next = ids[(index + 1) % ids.length]
+    setActivePlanId(next)
+  }, [ownPlan, sharedPlans, effectiveActivePlanId])
+
   const value = useMemo(
     () => ({
       sharedPlans,
       activePlanId: effectiveActivePlanId,
       setActivePlanId,
+      cycleActivePlan,
       viewingPlan,
       addByCode,
       removeSharedPlan,
@@ -191,6 +205,7 @@ export function SharedDietsProvider({ children }: { children: ReactNode }) {
       effectiveActivePlanId,
       viewingPlan,
       addByCode,
+      cycleActivePlan,
       removeSharedPlan,
       shareOwnPlan,
       addingCode,

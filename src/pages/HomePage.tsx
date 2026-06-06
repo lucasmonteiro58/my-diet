@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AddSharedPlanSheet } from '../components/diet/AddSharedPlanSheet'
 import { DietHeader } from '../components/diet/DietHeader'
+import { DietSwitcherFab } from '../components/diet/DietSwitcherFab'
 import { DietSwitcherSheet } from '../components/diet/DietSwitcherSheet'
 import { MacrosGrid } from '../components/diet/MacrosGrid'
 import { FoodEditSheet, type FoodEditTarget } from '../components/diet/FoodEditSheet'
@@ -22,7 +23,7 @@ import { useSharedDiets } from '../contexts/SharedDietsContext'
 export function HomePage() {
   const { user } = useAuth()
   const { plan: ownPlan, loading, saving, cloudSynced, error, savePlan } = useDiet()
-  const { viewingPlan } = useSharedDiets()
+  const { viewingPlan, sharedPlans, cycleActivePlan } = useSharedDiets()
 
   const [uploadOpen, setUploadOpen] = useState(false)
   const [switcherOpen, setSwitcherOpen] = useState(false)
@@ -52,6 +53,8 @@ export function HomePage() {
   const activeMenu =
     plan?.menus.find((m) => m.id === (activeMenuId ?? plan.menus[0]?.id)) ??
     plan?.menus[0]
+
+  const canSwitchDiets = (ownPlan ? 1 : 0) + sharedPlans.length >= 2
 
   if (loading && !ownPlan) {
     return (
@@ -183,6 +186,13 @@ export function HomePage() {
       />
 
       <SharePlanSheet open={shareOpen} onClose={() => setShareOpen(false)} />
+
+      <DietSwitcherFab
+        patientName={plan.patientName}
+        enabled={canSwitchDiets}
+        onCycle={cycleActivePlan}
+        onLongPress={() => setSwitcherOpen(true)}
+      />
     </AppShell>
   )
 }

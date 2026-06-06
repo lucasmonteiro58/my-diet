@@ -1,8 +1,9 @@
-import { ArrowLeft, Calendar, History, Loader2 } from 'lucide-react'
+import { ArrowLeft, Calendar, GitCompare, History, Loader2, List } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '../components/layout/AppShell'
 import { PlanCompareView } from '../components/diet/PlanCompareView'
+import { PlanFullView } from '../components/diet/PlanFullView'
 import { useAuth } from '../contexts/AuthContext'
 import { useDiet } from '../contexts/DietContext'
 import { formatFirebaseError } from '../lib/firebase-errors'
@@ -58,14 +59,61 @@ function PlanSelector({
   )
 }
 
+type HistoryViewMode = 'compare' | 'full'
+
+function ViewModeToggle({
+  mode,
+  onChange,
+  canCompare,
+}: {
+  mode: HistoryViewMode
+  onChange: (mode: HistoryViewMode) => void
+  canCompare: boolean
+}) {
+  return (
+    <div className="flex gap-2 rounded-2xl border border-border bg-subtle p-1">
+      <button
+        type="button"
+        onClick={() => canCompare && onChange('compare')}
+        disabled={!canCompare}
+        className={[
+          'flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition',
+          mode === 'compare'
+            ? 'bg-surface-elevated text-ink shadow-sm'
+            : 'text-ink-muted hover:text-ink',
+          !canCompare ? 'cursor-not-allowed opacity-50' : '',
+        ].join(' ')}
+      >
+        <GitCompare className="h-4 w-4" />
+        Comparar versões
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange('full')}
+        className={[
+          'flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition',
+          mode === 'full'
+            ? 'bg-surface-elevated text-ink shadow-sm'
+            : 'text-ink-muted hover:text-ink',
+        ].join(' ')}
+      >
+        <List className="h-4 w-4" />
+        Ver plano completo
+      </button>
+    </div>
+  )
+}
+
 export function DietHistoryPage() {
   const { user, isConfigured } = useAuth()
   const { plan: currentPlan } = useDiet()
   const [history, setHistory] = useState<DietPlan[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<HistoryViewMode>('compare')
   const [planAId, setPlanAId] = useState<string>('')
   const [planBId, setPlanBId] = useState<string>('')
+  const [fullViewPlanId, setFullViewPlanId] = useState<string>('')
 
   useEffect(() => {
     if (!user || !canUseCloud()) {
@@ -86,9 +134,12 @@ export function DietHistoryPage() {
         if (plans.length >= 2) {
           setPlanAId(plans[1].id)
           setPlanBId(plans[0].id)
+          setFullViewPlanId(plans[1].id)
         } else if (plans.length === 1) {
           setPlanAId(plans[0].id)
           setPlanBId(plans[0].id)
+          setFullViewPlanId(plans[0].id)
+          setViewMode('full')
         }
       } catch (e) {
         if (!cancelled) setError(formatFirebaseError(e))
@@ -111,8 +162,13 @@ export function DietHistoryPage() {
     () => history.find((p) => p.id === planBId) ?? null,
     [history, planBId],
   )
+  const fullViewPlan = useMemo(
+    () => history.find((p) => p.id === fullViewPlanId) ?? null,
+    [history, fullViewPlanId],
+  )
 
   const currentPlanId = currentPlan?.id ?? history[0]?.id ?? null
+  const canCompare = history.length >= 2
 
   return (
     <AppShell>
@@ -128,7 +184,7 @@ export function DietHistoryPage() {
           <div>
             <h1 className="text-xl font-bold text-ink">Histórico de dietas</h1>
             <p className="mt-1 text-sm text-ink-muted">
-              Compare versões anteriores do seu plano alimentar.
+              Veja dietas antigas completas ou compare versões do seu plano.
             </p>
           </div>
         </div>
@@ -179,48 +235,65 @@ export function DietHistoryPage() {
           </div>
         )}
 
-        {user && isConfigured && !loading && history.length === 1 && (
-          <div className="rounded-2xl border border-border bg-subtle px-4 py-8 text-center">
-            <History className="mx-auto h-10 w-10 text-ink-muted" />
-            <p className="mt-4 text-sm font-medium text-ink">Apenas uma versão disponível</p>
-            <p className="mt-1 text-sm text-ink-muted">
-              Importe um novo plano para comparar com esta versão.
-            </p>
-          </div>
-        )}
-
-        {user && isConfigured && !loading && history.length >= 2 && planA && planB && (
+        {user && isConfigured && !loading && history.length >= 1 && (
           <>
-            <section className="space-y-3 rounded-2xl border border-border bg-surface-elevated p-4 shadow-sm">
-              <h2 className="text-sm font-bold uppercase tracking-wide text-ink-muted">
-                Selecionar versões
-              </h2>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <PlanSelector
-                  id="plan-a"
-                  label="Versão anterior"
-                  value={planAId}
-                  plans={history}
-                  currentPlanId={currentPlanId}
-                  onChange={setPlanAId}
-                />
-                <PlanSelector
-                  id="plan-b"
-                  label="Versão mais recente"
-                  value={planBId}
-                  plans={history}
-                  currentPlanId={currentPlanId}
-                  onChange={setPlanBId}
-                />
-              </div>
-            </section>
-
-            <PlanCompareView
-              planA={planA}
-              planB={planB}
-              labelA={formatPlanVersionLabel(planA, planA.id === currentPlanId)}
-              labelB={formatPlanVersionLabel(planB, planB.id === currentPlanId)}
+            <ViewModeToggle
+              mode={viewMode}
+              onChange={setViewMode}
+              canCompare={canCompare}
             />
+
+            {viewMode === 'full' && fullViewPlan && (
+              <>
+                <section className="space-y-3 rounded-2xl border border-border bg-surface-elevated p-4 shadow-sm">
+                  <PlanSelector
+                    id="plan-full"
+                    label="Versão do plano"
+                    value={fullViewPlanId}
+                    plans={history}
+                    currentPlanId={currentPlanId}
+                    onChange={setFullViewPlanId}
+                  />
+                </section>
+
+                <PlanFullView key={fullViewPlan.id} plan={fullViewPlan} />
+              </>
+            )}
+
+            {viewMode === 'compare' && canCompare && planA && planB && (
+              <>
+                <section className="space-y-3 rounded-2xl border border-border bg-surface-elevated p-4 shadow-sm">
+                  <h2 className="text-sm font-bold uppercase tracking-wide text-ink-muted">
+                    Selecionar versões
+                  </h2>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <PlanSelector
+                      id="plan-a"
+                      label="Versão anterior"
+                      value={planAId}
+                      plans={history}
+                      currentPlanId={currentPlanId}
+                      onChange={setPlanAId}
+                    />
+                    <PlanSelector
+                      id="plan-b"
+                      label="Versão mais recente"
+                      value={planBId}
+                      plans={history}
+                      currentPlanId={currentPlanId}
+                      onChange={setPlanBId}
+                    />
+                  </div>
+                </section>
+
+                <PlanCompareView
+                  planA={planA}
+                  planB={planB}
+                  labelA={formatPlanVersionLabel(planA, planA.id === currentPlanId)}
+                  labelB={formatPlanVersionLabel(planB, planB.id === currentPlanId)}
+                />
+              </>
+            )}
           </>
         )}
       </div>
