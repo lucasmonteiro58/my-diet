@@ -39,6 +39,8 @@ interface DietContextValue {
   importFromPdf: (file: File) => Promise<void>
   savePlan: () => Promise<void>
   setPlan: (plan: DietPlan) => void
+  setPlanFromCloud: (plan: DietPlan) => void
+  clearPlan: () => void
   saveFood: (
     location: FoodLocation,
     data: { name: string; quantity: string },
@@ -133,6 +135,21 @@ export function DietProvider({ children }: { children: ReactNode }) {
     },
     [applyPlan],
   )
+
+  const setPlanFromCloud = useCallback(
+    (next: DietPlan) => {
+      applyPlan(next, true)
+    },
+    [applyPlan],
+  )
+
+  const clearPlan = useCallback(() => {
+    setPlanState(null)
+    localStorage.removeItem(LOCAL_KEY)
+    clearCloudSyncMeta()
+    setCloudSynced(false)
+    setError(null)
+  }, [])
 
   const syncToCloud = useCallback(
     async (planToSave: DietPlan): Promise<DietPlan> => {
@@ -291,6 +308,8 @@ export function DietProvider({ children }: { children: ReactNode }) {
       importFromPdf,
       savePlan,
       setPlan,
+      setPlanFromCloud,
+      clearPlan,
       saveFood,
       removeFood,
     }),
@@ -304,6 +323,8 @@ export function DietProvider({ children }: { children: ReactNode }) {
       importFromPdf,
       savePlan,
       setPlan,
+      setPlanFromCloud,
+      clearPlan,
       saveFood,
       removeFood,
     ],

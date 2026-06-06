@@ -1,9 +1,10 @@
-import { ArrowLeft, Calendar, GitCompare, History, Loader2, List } from 'lucide-react'
+import { ArrowLeft, Calendar, GitCompare, History, Loader2, List, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '../components/layout/AppShell'
 import { PlanCompareView } from '../components/diet/PlanCompareView'
 import { PlanFullView } from '../components/diet/PlanFullView'
+import { Button } from '../components/ui/Button'
 import { useAuth } from '../contexts/AuthContext'
 import { useDiet } from '../contexts/DietContext'
 import { formatFirebaseError } from '../lib/firebase-errors'
@@ -12,7 +13,12 @@ import {
   formatPlanVersionLabel,
   uniquePlansByDate,
 } from '../lib/plan-diff'
-import { canUseCloud, getUserDietPlanHistory } from '../services/dietService'
+import { toast } from '../lib/toast'
+import {
+  canUseCloud,
+  deleteUserDietPlan,
+  getUserDietPlanHistory,
+} from '../services/dietService'
 import type { DietPlan } from '../types/diet'
 
 function PlanSelector({
@@ -106,7 +112,7 @@ function ViewModeToggle({
 
 export function DietHistoryPage() {
   const { user, isConfigured } = useAuth()
-  const { plan: currentPlan } = useDiet()
+  const { plan: currentPlan, setPlanFromCloud, clearPlan } = useDiet()
   const [history, setHistory] = useState<DietPlan[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -114,6 +120,59 @@ export function DietHistoryPage() {
   const [planAId, setPlanAId] = useState<string>('')
   const [planBId, setPlanBId] = useState<string>('')
   const [fullViewPlanId, setFullViewPlanId] = useState<string>('')
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  function refreshSelectionAfterDelete(deletedId: string, nextHistory: DietPlan[]) {
+    setHistory(nextHistory)
+
+    const pickNext = (currentId: string) => {
+      if (currentId !== deletedId) return currentId
+      return nextHistory[0]?.id ?? ''
+    }
+
+    setPlanAId((currentId) => pickNext(currentId))
+    setPlanBId((currentId) => pickNext(currentId))
+    setFullViewPlanId((currentId) => pickNext(currentId))
+
+    if (nextHistory.length < 2) {
+      setViewMode('full')
+    }
+  }
+
+  async function handleDeletePlan(planId: string) {
+    if (!user) return
+
+    setDeleting(true)
+    setError(null)
+    try {
+      const result = await deleteUserDietPlan(user.uid, planId)
+      const nextHistory = history.filter((p) => p.id !== planId)
+      refreshSelectionAfterDelete(planId, nextHistory)
+      setConfirmDeleteId(null)
+
+      if (result.deletedWasCurrent) {
+        if (result.newCurrentPlan) {
+          setPlanFromCloud(result.newCurrentPlan)
+          toast.success(
+            'Versão excluída',
+            'Seu plano ativo foi atualizado para a versão anterior.',
+          )
+        } else {
+          clearPlan()
+          toast.success('Plano excluído', 'Nenhum plano restante na sua conta.')
+        }
+      } else {
+        toast.success('Versão excluída', 'Removida do histórico.')
+      }
+    } catch (e) {
+      const message = formatFirebaseError(e)
+      setError(message)
+      toast.error('Erro ao excluir', message)
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   useEffect(() => {
     if (!user || !canUseCloud()) {
@@ -169,6 +228,10 @@ export function DietHistoryPage() {
 
   const currentPlanId = currentPlan?.id ?? history[0]?.id ?? null
   const canCompare = history.length >= 2
+  const deletingPlan = history.find((p) => p.id === confirmDeleteId) ?? null
+  const isDeletingCurrent = confirmDeleteId === currentPlanId
+  const hasOtherVersions =
+    confirmDeleteId != null && history.some((p) => p.id !== confirmDeleteId)
 
   return (
     <AppShell>
@@ -252,8 +315,60 @@ export function DietHistoryPage() {
                     value={fullViewPlanId}
                     plans={history}
                     currentPlanId={currentPlanId}
-                    onChange={setFullViewPlanId}
+                    onChange={(planId) => {
+                      setFullViewPlanId(planId)
+                      setConfirmDeleteId(null)
+                    }}
                   />
+
+                  {confirmDeleteId === fullViewPlanId && deletingPlan ? (
+                    <div className="rounded-xl border border-danger/30 bg-danger-subtle p-4">
+                      <p className="text-sm font-medium text-danger-text">
+                        Excluir {formatPlanVersionLabel(deletingPlan, isDeletingCurrent)}?
+                      </p>
+                      <p className="mt-1 text-sm text-danger-text/90">
+                        {isDeletingCurrent && hasOtherVersions
+                          ? 'Esta é sua versão ativa. A versão anterior passará a ser seu plano ativo.'
+                          : isDeletingCurrent
+                            ? 'Esta é sua versão ativa. Você ficará sem plano na conta.'
+                            : 'Esta versão será removida permanentemente do histórico.'}
+                      </p>
+                      <div className="mt-4 flex gap-2">
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          disabled={deleting}
+                          onClick={() => setConfirmDeleteId(null)}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="flex-1 border-danger/40 text-danger hover:bg-danger-subtle"
+                          disabled={deleting}
+                          onClick={() => void handleDeletePlan(fullViewPlanId)}
+                        >
+                          {deleting ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Excluindo...
+                            </>
+                          ) : (
+                            'Excluir versão'
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      className="w-full border-danger/30 text-danger hover:bg-danger-subtle"
+                      onClick={() => setConfirmDeleteId(fullViewPlanId)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Excluir esta versão
+                    </Button>
+                  )}
                 </section>
 
                 <PlanFullView key={fullViewPlan.id} plan={fullViewPlan} />

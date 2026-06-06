@@ -1,6 +1,8 @@
 import {
   collection,
+  deleteDoc,
   doc,
+  getDoc,
   getDocs,
   limit,
   query,
@@ -129,6 +131,44 @@ export async function getUserDietPlanHistory(userId: string): Promise<DietPlan[]
 
   const plans = snap.docs.map((d) => docToPlan(d.data() as Record<string, unknown>))
   return sortPlansNewestFirst(plans)
+}
+
+export interface DeleteDietPlanResult {
+  deletedWasCurrent: boolean
+  newCurrentPlan: DietPlan | null
+}
+
+/** Removes a plan from history. Promotes the next newest plan if the current one was deleted. */
+export async function deleteUserDietPlan(
+  userId: string,
+  planId: string,
+): Promise<DeleteDietPlanResult> {
+  if (!db) throw new Error('Firebase not configured')
+
+  const docId = planDocId(userId, planId)
+  const ref = doc(db, PLANS, docId)
+  const snap = await getDoc(ref)
+
+  if (!snap.exists()) {
+    return { deletedWasCurrent: false, newCurrentPlan: null }
+  }
+
+  const wasCurrent = snap.data().current === true
+  await deleteDoc(ref)
+
+  if (!wasCurrent) {
+    return { deletedWasCurrent: false, newCurrentPlan: null }
+  }
+
+  const remaining = await getUserDietPlanHistory(userId)
+  const next = remaining[0] ?? null
+
+  if (next) {
+    const nextRef = doc(db, PLANS, planDocId(userId, next.id))
+    await setDoc(nextRef, { current: true }, { merge: true })
+  }
+
+  return { deletedWasCurrent: true, newCurrentPlan: next }
 }
 
 export function canUseCloud(): boolean {
