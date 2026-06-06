@@ -3,7 +3,6 @@ import {
   doc,
   getDocs,
   limit,
-  orderBy,
   query,
   setDoc,
   where,
@@ -27,6 +26,14 @@ function planDocId(userId: string, planId: string): string {
 function docToPlan(data: Record<string, unknown>): DietPlan {
   const { userId: _userId, current: _current, ...plan } = data
   return plan as unknown as DietPlan
+}
+
+function sortPlansNewestFirst(plans: DietPlan[]): DietPlan[] {
+  return [...plans].sort((a, b) => {
+    const aTime = a.createdAt ?? a.updatedAt ?? ''
+    const bTime = b.createdAt ?? b.updatedAt ?? ''
+    return bTime.localeCompare(aTime)
+  })
 }
 
 function withTimestamps(plan: DietPlan): DietPlan {
@@ -102,16 +109,26 @@ export async function getCurrentUserDietPlan(userId: string): Promise<DietPlan |
     return docToPlan(currentSnap.docs[0].data() as Record<string, unknown>)
   }
 
-  const latestSnap = await getDocs(
-    query(
-      collection(db, PLANS),
-      where('userId', '==', userId),
-      orderBy('createdAt', 'desc'),
-      limit(1),
-    ),
+  const allSnap = await getDocs(
+    query(collection(db, PLANS), where('userId', '==', userId)),
   )
-  if (latestSnap.empty) return null
-  return docToPlan(latestSnap.docs[0].data() as Record<string, unknown>)
+  if (allSnap.empty) return null
+  const plans = sortPlansNewestFirst(
+    allSnap.docs.map((d) => docToPlan(d.data() as Record<string, unknown>)),
+  )
+  return plans[0] ?? null
+}
+
+/** All saved plans for the user, newest first. */
+export async function getUserDietPlanHistory(userId: string): Promise<DietPlan[]> {
+  if (!db) return []
+
+  const snap = await getDocs(
+    query(collection(db, PLANS), where('userId', '==', userId)),
+  )
+
+  const plans = snap.docs.map((d) => docToPlan(d.data() as Record<string, unknown>))
+  return sortPlansNewestFirst(plans)
 }
 
 export function canUseCloud(): boolean {

@@ -6,6 +6,7 @@ import { EditModeProvider } from './contexts/EditModeContext'
 import { SharedDietsProvider } from './contexts/SharedDietsContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { HomePage } from './pages/HomePage'
+import { DietHistoryPage } from './pages/DietHistoryPage'
 import { LoginPage } from './pages/LoginPage'
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<HomePage />} />
+              <Route path="/history" element={<DietHistoryPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

@@ -1,8 +1,9 @@
-import { LogIn, LogOut, Settings, Sparkles } from 'lucide-react'
+import { History, LogIn, LogOut, Settings, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSharedDiets } from '../../contexts/SharedDietsContext'
+import { canUseCloud } from '../../services/dietService'
 import { EditModeToggle } from '../settings/EditModeToggle'
 import { ThemeSelector } from '../theme/ThemeSelector'
 import { BottomSheet } from '../ui/BottomSheet'
@@ -42,6 +43,16 @@ export function UserMenu({ onImportClick }: UserMenuProps) {
           <div className="flex flex-col px-2 pb-2">
             <ThemeSelector />
             {isOwn && <EditModeToggle />}
+            {canUseCloud() && (
+              <Link
+                to="/history"
+                onClick={() => setOpen(false)}
+                className="mx-1 flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-medium text-ink transition hover:bg-hover active:bg-active"
+              >
+                <History className="h-5 w-5 text-brand-600 dark:text-brand-800" />
+                Histórico de dietas
+              </Link>
+            )}
             <Link
               to="/login"
               onClick={() => setOpen(false)}
@@ -126,6 +137,17 @@ export function UserMenu({ onImportClick }: UserMenuProps) {
               <Sparkles className="h-5 w-5 text-brand-600 dark:text-brand-800" />
               Importar plano
             </button>
+          )}
+
+          {user && canUseCloud() && (
+            <Link
+              to="/history"
+              onClick={() => setOpen(false)}
+              className="mx-1 flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-medium text-ink transition hover:bg-hover active:bg-active"
+            >
+              <History className="h-5 w-5 text-brand-600 dark:text-brand-800" />
+              Histórico de dietas
+            </Link>
           )}
 
           <button

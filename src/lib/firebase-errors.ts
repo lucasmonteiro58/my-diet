@@ -13,7 +13,8 @@ export function formatFirebaseError(error: unknown): string {
   if (message.includes('requires an index')) {
     return (
       'Índice do Firestore pendente. Abra o link do erro no console do navegador ' +
-      'ou crie o índice composto: dietPlans — userId (asc) + updatedAt (desc).'
+      'ou execute: firebase deploy --only firestore:indexes ' +
+      '(índices em firestore.indexes.json).'
     )
   }
 
