@@ -1,4 +1,15 @@
-import { collection, deleteDoc, doc, getDocs, getDoc, query, setDoc, where } from 'firebase/firestore'
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  onSnapshot,
+  query,
+  setDoc,
+  where,
+} from 'firebase/firestore'
 import { stripUndefinedDeep } from '../lib/firestore-data'
 import { db, isFirebaseConfigured } from '../lib/firebase'
 import type { DietPlan } from '../types/diet'
@@ -8,7 +19,7 @@ const ACCESS = 'sharedAccess'
 const CACHE_KEY = 'my-diet-share-code-cache'
 
 interface ShareCodeCache {
-  planId: string
+  ownerId: string
   code: string
 }
 
@@ -17,6 +28,7 @@ interface SharedPlanDoc {
   patientName: string
   planData: DietPlan
   createdAt: string
+  updatedAt?: string
 }
 
 function generateCode(): string {
@@ -26,75 +38,125 @@ function generateCode(): string {
 function loadShareCodeCache(): ShareCodeCache | null {
   try {
     const raw = localStorage.getItem(CACHE_KEY)
-    return raw ? (JSON.parse(raw) as ShareCodeCache) : null
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as ShareCodeCache & { planId?: string }
+    if (parsed.ownerId && parsed.code) return parsed
+    return null
   } catch {
     return null
   }
 }
 
-function persistShareCodeCache(planId: string, code: string) {
-  localStorage.setItem(CACHE_KEY, JSON.stringify({ planId, code }))
+function persistShareCodeCache(ownerId: string, code: string) {
+  localStorage.setItem(CACHE_KEY, JSON.stringify({ ownerId, code }))
 }
 
+function sharedPlanPayload(ownerId: string, plan: DietPlan) {
+  const now = new Date().toISOString()
+  const stampedPlan: DietPlan = { ...plan, updatedAt: now }
+
+  return stripUndefinedDeep({
+    ownerId,
+    patientName: plan.patientName,
+    planData: stampedPlan,
+    updatedAt: now,
+  })
+}
+
+/** Finds the owner's existing share code from cache or Firestore. */
+export async function findExistingShareCode(ownerId: string): Promise<string | null> {
+  if (!db || !isFirebaseConfigured) return null
+
+  const cached = loadShareCodeCache()
+  if (cached?.ownerId === ownerId && cached.code) {
+    try {
+      const existing = await getDoc(doc(db, SHARED, cached.code))
+      if (existing.exists() && existing.data().ownerId === ownerId) {
+        return cached.code
+      }
+    } catch {
+      // fall through to Firestore query
+    }
+  }
+
+  const snap = await getDocs(
+    query(collection(db, SHARED), where('ownerId', '==', ownerId), limit(1)),
+  )
+  if (snap.empty) return null
+
+  const code = snap.docs[0].id
+  persistShareCodeCache(ownerId, code)
+  return code
+}
+
+/** Returns the owner's share code, reusing it and updating planData with the current diet. */
 export async function getOrCreateShareCode(
   ownerId: string,
   plan: DietPlan,
 ): Promise<string> {
   if (!db || !isFirebaseConfigured) throw new Error('Firebase não configurado')
 
-  const cached = loadShareCodeCache()
-  if (cached?.planId === plan.id && cached.code) {
-    try {
-      const existing = await getDoc(doc(db, SHARED, cached.code))
-      if (existing.exists()) return cached.code
-    } catch {
-      // fall through to create a new code
-    }
+  const existingCode = await findExistingShareCode(ownerId)
+  if (existingCode) {
+    await setDoc(doc(db, SHARED, existingCode), sharedPlanPayload(ownerId, plan), {
+      merge: true,
+    })
+    persistShareCodeCache(ownerId, existingCode)
+    return existingCode
   }
 
   const code = generateCode()
-  const ref = doc(db, SHARED, code)
-
   const data: SharedPlanDoc = {
     ownerId,
     patientName: plan.patientName,
     planData: plan,
     createdAt: new Date().toISOString(),
+    updatedAt: plan.updatedAt ?? new Date().toISOString(),
   }
 
-  await setDoc(ref, stripUndefinedDeep(data))
-  persistShareCodeCache(plan.id, code)
+  await setDoc(doc(db, SHARED, code), stripUndefinedDeep(data))
+  persistShareCodeCache(ownerId, code)
 
   return code
 }
 
-/** Silently updates the shared plan snapshot if a code is already cached for this plan. */
-export async function syncSharedPlanIfExists(
-  ownerId: string,
-  plan: DietPlan,
-): Promise<void> {
+/** Updates the owner's shared plan snapshot when they already have a share code. */
+export async function syncSharedPlan(ownerId: string, plan: DietPlan): Promise<void> {
   if (!db || !isFirebaseConfigured) return
 
-  const cached = loadShareCodeCache()
-  if (!cached || cached.planId !== plan.id) return
-
   try {
-    const ref = doc(db, SHARED, cached.code)
-    const existing = await getDoc(ref)
-    if (!existing.exists()) return
+    const code = await findExistingShareCode(ownerId)
+    if (!code) return
 
-    await setDoc(
-      ref,
-      stripUndefinedDeep({
-        ownerId,
-        patientName: plan.patientName,
-        planData: plan,
-      }),
-      { merge: true },
-    )
+    await setDoc(doc(db, SHARED, code), sharedPlanPayload(ownerId, plan), { merge: true })
   } catch {
     // Non-critical — don't surface errors for background sync
   }
+}
+
+/** Live updates for recipients viewing a shared plan by code. */
+export function subscribeToSharedPlan(
+  code: string,
+  onUpdate: (plan: DietPlan | null) => void,
+): () => void {
+  if (!db || !isFirebaseConfigured) {
+    onUpdate(null)
+    return () => {}
+  }
+
+  const upper = code.toUpperCase()
+  return onSnapshot(
+    doc(db, SHARED, upper),
+    (snap) => {
+      if (!snap.exists()) {
+        onUpdate(null)
+        return
+      }
+      const data = snap.data() as SharedPlanDoc
+      onUpdate(data.planData)
+    },
+    () => onUpdate(null),
+  )
 }
 
 export interface SharedAccessDoc {
@@ -142,4 +204,8 @@ export async function fetchSharedPlan(
 
   const data = snap.data() as SharedPlanDoc
   return { plan: data.planData, ownerId: data.ownerId }
+}
+
+export function canUseShareCloud(): boolean {
+  return isFirebaseConfigured
 }

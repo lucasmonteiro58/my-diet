@@ -16,7 +16,7 @@ import {
   getCurrentUserDietPlan,
   saveDietPlanAsCurrent,
 } from '../services/dietService'
-import { syncSharedPlanIfExists } from '../services/shareService'
+import { syncSharedPlan } from '../services/shareService'
 import { ensureFoodIds, removeFoodItem, upsertFoodItem } from '../lib/plan-food'
 import type { DietPlan, FoodLocation } from '../types/diet'
 import { useAuth } from './AuthContext'
@@ -160,7 +160,7 @@ export function DietProvider({ children }: { children: ReactNode }) {
         const saved = await saveDietPlanAsCurrent(user.uid, planToSave)
         applyPlan(saved, true)
         toast.success('Plano salvo na nuvem', 'Sincronizado com sua conta Google.')
-        void syncSharedPlanIfExists(user.uid, saved)
+        void syncSharedPlan(user.uid, saved)
         return saved
       } catch (e) {
         const message = formatFirebaseError(e)
@@ -269,22 +269,34 @@ export function DietProvider({ children }: { children: ReactNode }) {
 
   const saveFood = useCallback(
     async (location: FoodLocation, data: { name: string; quantity: string }) => {
-      commitPlanChange((current) => upsertFoodItem(current, location, data))
+      commitPlanChange((current) => {
+        const next = upsertFoodItem(current, location, data)
+        if (user && canUseCloud()) {
+          void syncSharedPlan(user.uid, next)
+        }
+        return next
+      })
       toast.success(
         location.foodId ? 'Alimento atualizado' : 'Alimento adicionado',
         'Alteração salva neste dispositivo.',
       )
     },
-    [commitPlanChange],
+    [commitPlanChange, user],
   )
 
   const removeFood = useCallback(
     async (location: FoodLocation) => {
       if (!location.foodId) return
-      commitPlanChange((current) => removeFoodItem(current, location))
+      commitPlanChange((current) => {
+        const next = removeFoodItem(current, location)
+        if (user && canUseCloud()) {
+          void syncSharedPlan(user.uid, next)
+        }
+        return next
+      })
       toast.success('Alimento removido', 'Alteração salva neste dispositivo.')
     },
-    [commitPlanChange],
+    [commitPlanChange, user],
   )
 
   const savePlan = useCallback(async () => {

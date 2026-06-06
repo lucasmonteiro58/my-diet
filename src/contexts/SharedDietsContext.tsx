@@ -10,13 +10,15 @@ import {
 import { formatFirebaseError } from '../lib/firebase-errors'
 import { toast } from '../lib/toast'
 import {
+  canUseShareCloud,
   deleteSharedAccess,
   fetchSharedPlan,
   getOrCreateShareCode,
   loadSharedAccessList,
   saveSharedAccess,
+  subscribeToSharedPlan,
 } from '../services/shareService'
-import type { SharedPlanEntry, ViewingPlan } from '../types/diet'
+import type { DietPlan, SharedPlanEntry, ViewingPlan } from '../types/diet'
 import { useAuth } from './AuthContext'
 import { useDiet } from './DietContext'
 
@@ -50,6 +52,25 @@ function persistLocal(plans: SharedPlanEntry[]) {
   localStorage.setItem(LOCAL_KEY, JSON.stringify(plans))
 }
 
+function isSamePlanSnapshot(a: DietPlan, b: DietPlan): boolean {
+  return a.id === b.id && a.updatedAt === b.updatedAt
+}
+
+function upsertSharedPlanEntry(
+  prev: SharedPlanEntry[],
+  entry: SharedPlanEntry,
+): SharedPlanEntry[] {
+  const index = prev.findIndex((p) => p.code === entry.code)
+  if (index === -1) return [...prev, entry]
+
+  const existing = prev[index]
+  if (isSamePlanSnapshot(existing.plan, entry.plan)) return prev
+
+  const next = [...prev]
+  next[index] = { ...existing, plan: entry.plan }
+  return next
+}
+
 export function SharedDietsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const { plan: ownPlan } = useDiet()
@@ -58,9 +79,33 @@ export function SharedDietsProvider({ children }: { children: ReactNode }) {
   const [addingCode, setAddingCode] = useState(false)
   const [sharingPlan, setSharingPlan] = useState(false)
 
-  // Sync from Firestore when user logs in
+  const sharedCodesKey = useMemo(
+    () => sharedPlans.map((p) => p.code).sort().join(','),
+    [sharedPlans],
+  )
+
+  const updateSharedPlan = useCallback(
+    (code: string, plan: DietPlan) => {
+      setSharedPlansState((prev) => {
+        const entry = prev.find((p) => p.code === code)
+        if (!entry || isSamePlanSnapshot(entry.plan, plan)) return prev
+
+        const next = prev.map((p) => (p.code === code ? { ...p, plan } : p))
+        persistLocal(next)
+
+        if (user) {
+          void saveSharedAccess(user.uid, code, plan, entry.addedAt)
+        }
+
+        return next
+      })
+    },
+    [user],
+  )
+
+  // Refresh from Firestore on login — always fetch the latest shared snapshot.
   useEffect(() => {
-    if (!user) return
+    if (!user || !canUseShareCloud()) return
     let cancelled = false
 
     async function syncFromCloud() {
@@ -68,11 +113,23 @@ export function SharedDietsProvider({ children }: { children: ReactNode }) {
         const docs = await loadSharedAccessList(user!.uid)
         if (cancelled || docs.length === 0) return
 
+        const refreshed = await Promise.all(
+          docs.map(async (d) => {
+            const live = await fetchSharedPlan(d.code)
+            return {
+              code: d.code,
+              addedAt: d.addedAt,
+              plan: live?.plan ?? d.planData,
+            } satisfies SharedPlanEntry
+          }),
+        )
+
+        if (cancelled) return
+
         setSharedPlansState((prev) => {
-          // Merge: cloud wins for existing codes, add new ones
           const map = new Map(prev.map((p) => [p.code, p]))
-          for (const d of docs) {
-            map.set(d.code, { code: d.code, addedAt: d.addedAt, plan: d.planData })
+          for (const entry of refreshed) {
+            map.set(entry.code, entry)
           }
           const merged = Array.from(map.values())
           persistLocal(merged)
@@ -84,8 +141,27 @@ export function SharedDietsProvider({ children }: { children: ReactNode }) {
     }
 
     void syncFromCloud()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [user])
+
+  // Live updates from the owner's shared plan document.
+  useEffect(() => {
+    if (!canUseShareCloud() || !sharedCodesKey) return
+
+    const codes = sharedCodesKey.split(',').filter(Boolean)
+    const unsubscribers = codes.map((code) =>
+      subscribeToSharedPlan(code, (plan) => {
+        if (!plan) return
+        updateSharedPlan(code, plan)
+      }),
+    )
+
+    return () => {
+      unsubscribers.forEach((unsubscribe) => unsubscribe())
+    }
+  }, [sharedCodesKey, updateSharedPlan])
 
   // Fall back to own plan if the active shared plan is removed
   const effectiveActivePlanId = useMemo(() => {
@@ -107,11 +183,6 @@ export function SharedDietsProvider({ children }: { children: ReactNode }) {
       const upper = code.trim().toUpperCase()
       if (!upper) return
 
-      if (sharedPlans.some((p) => p.code === upper)) {
-        toast.info('Dieta já adicionada', 'Este código já está na sua lista.')
-        return
-      }
-
       setAddingCode(true)
       try {
         const result = await fetchSharedPlan(upper)
@@ -119,11 +190,13 @@ export function SharedDietsProvider({ children }: { children: ReactNode }) {
           toast.error('Código inválido', 'Nenhum plano encontrado para este código.')
           return
         }
-        const addedAt = new Date().toISOString()
+
+        const existing = sharedPlans.find((p) => p.code === upper)
+        const addedAt = existing?.addedAt ?? new Date().toISOString()
         const entry: SharedPlanEntry = { code: upper, addedAt, plan: result.plan }
 
         setSharedPlansState((prev) => {
-          const next = [...prev, entry]
+          const next = upsertSharedPlanEntry(prev, entry)
           persistLocal(next)
           return next
         })
@@ -134,8 +207,10 @@ export function SharedDietsProvider({ children }: { children: ReactNode }) {
         }
 
         toast.success(
-          'Dieta adicionada',
-          `Plano de ${result.plan.patientName} adicionado com sucesso.`,
+          existing ? 'Dieta atualizada' : 'Dieta adicionada',
+          existing
+            ? `Plano de ${result.plan.patientName} sincronizado com a versão mais recente.`
+            : `Plano de ${result.plan.patientName} adicionado com sucesso.`,
         )
       } catch (e) {
         toast.error('Erro ao buscar plano', formatFirebaseError(e))
