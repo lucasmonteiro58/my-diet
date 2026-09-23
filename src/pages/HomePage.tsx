@@ -1,5 +1,5 @@
-import { Check, CloudUpload, Loader2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Check, CloudUpload, Loader2, Users } from 'lucide-react'
+import { useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AddSharedPlanSheet } from '../components/diet/AddSharedPlanSheet'
 import { DietHeader } from '../components/diet/DietHeader'
@@ -19,11 +19,27 @@ import { useAuth } from '../contexts/AuthContext'
 import { useDiet } from '../contexts/DietContext'
 import { useEditMode } from '../contexts/EditModeContext'
 import { useSharedDiets } from '../contexts/SharedDietsContext'
+import type { FoodLocation } from '../types/diet'
 
 export function HomePage() {
   const { user } = useAuth()
-  const { plan: ownPlan, loading, saving, cloudSynced, error, savePlan } = useDiet()
-  const { viewingPlan, sharedPlans, cycleActivePlan } = useSharedDiets()
+  const {
+    plan: ownPlan,
+    loading,
+    saving,
+    cloudSynced,
+    error,
+    savePlan,
+    saveFood,
+    removeFood,
+  } = useDiet()
+  const {
+    viewingPlan,
+    sharedPlans,
+    cycleActivePlan,
+    saveSharedFood,
+    removeSharedFood,
+  } = useSharedDiets()
 
   const [uploadOpen, setUploadOpen] = useState(false)
   const [switcherOpen, setSwitcherOpen] = useState(false)
@@ -31,24 +47,46 @@ export function HomePage() {
   const [shareOpen, setShareOpen] = useState(false)
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
   const [foodEdit, setFoodEdit] = useState<FoodEditTarget | null>(null)
-  const { enabled: editMode, setEnabled: setEditMode } = useEditMode()
+  const { enabled: editMode } = useEditMode()
 
   const isOwn = viewingPlan?.isOwn ?? true
   const plan = viewingPlan?.plan ?? null
 
-  // Disable edit mode when viewing a shared (read-only) plan
-  useEffect(() => {
-    if (!isOwn && editMode) setEditMode(false)
-  }, [isOwn, editMode, setEditMode])
+  const handleSaveFood = useCallback(
+    async (location: FoodLocation, data: { name: string; quantity: string }) => {
+      if (isOwn) {
+        await saveFood(location, data)
+      } else if (viewingPlan?.shareCode) {
+        await saveSharedFood(viewingPlan.shareCode, location, data)
+      }
+    },
+    [isOwn, viewingPlan, saveFood, saveSharedFood],
+  )
 
-  useEffect(() => {
+  const handleRemoveFood = useCallback(
+    async (location: FoodLocation) => {
+      if (isOwn) {
+        await removeFood(location)
+      } else if (viewingPlan?.shareCode) {
+        await removeSharedFood(viewingPlan.shareCode, location)
+      }
+    },
+    [isOwn, viewingPlan, removeFood, removeSharedFood],
+  )
+
+  const [prevEditMode, setPrevEditMode] = useState(editMode)
+  if (prevEditMode !== editMode) {
+    setPrevEditMode(editMode)
     if (!editMode) setFoodEdit(null)
-  }, [editMode])
+  }
 
   // Reset menu tab when the active plan changes
-  useEffect(() => {
+  const shareCode = viewingPlan?.shareCode
+  const [prevShareCode, setPrevShareCode] = useState(shareCode)
+  if (prevShareCode !== shareCode) {
+    setPrevShareCode(shareCode)
     setActiveMenuId(null)
-  }, [viewingPlan?.shareCode])
+  }
 
   const activeMenu =
     plan?.menus.find((m) => m.id === (activeMenuId ?? plan.menus[0]?.id)) ??
@@ -123,7 +161,7 @@ export function HomePage() {
                 meal={meal}
                 menuId={activeMenu.id}
                 defaultOpen={idx === 0}
-                onEditFood={isOwn ? setFoodEdit : undefined}
+                onEditFood={setFoodEdit}
               />
             ))}
           </div>
@@ -137,6 +175,13 @@ export function HomePage() {
           <p className="rounded-xl bg-danger-subtle px-3 py-2 text-sm text-danger-text">
             {error}
           </p>
+        )}
+
+        {!isOwn && (
+          <div className="flex items-center justify-center gap-2 rounded-2xl border border-brand-500/20 bg-brand-50/60 p-3 text-xs font-medium text-brand-700 dark:bg-brand-950/20 dark:text-brand-300">
+            <Users className="h-4 w-4 shrink-0" />
+            <span>Plano compartilhado · Edições sincronizam em tempo real</span>
+          </div>
         )}
 
         {isOwn && (
@@ -169,7 +214,12 @@ export function HomePage() {
       </div>
 
       <ImportPlanModal open={uploadOpen} onClose={() => setUploadOpen(false)} />
-      <FoodEditSheet target={foodEdit} onClose={() => setFoodEdit(null)} />
+      <FoodEditSheet
+        target={foodEdit}
+        onClose={() => setFoodEdit(null)}
+        onSave={handleSaveFood}
+        onRemove={handleRemoveFood}
+      />
 
       <DietSwitcherSheet
         open={switcherOpen}

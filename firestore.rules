@@ -17,11 +17,16 @@ service cloud.firestore {
       // Anyone authenticated can read a shared plan (to access it by code).
       allow read: if request.auth != null;
 
-      // Only the owner can create or overwrite their shared plan.
+      // Only the owner can create their shared plan.
       allow create: if request.auth != null
         && request.resource.data.ownerId == request.auth.uid;
 
-      allow update, delete: if request.auth != null
+      // Authenticated users can update the shared plan as long as ownerId remains unchanged.
+      allow update: if request.auth != null
+        && request.resource.data.ownerId == resource.data.ownerId;
+
+      // Only the owner can delete their shared plan.
+      allow delete: if request.auth != null
         && resource.data.ownerId == request.auth.uid;
     }
 

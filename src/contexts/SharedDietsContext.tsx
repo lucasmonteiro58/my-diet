@@ -17,8 +17,10 @@ import {
   loadSharedAccessList,
   saveSharedAccess,
   subscribeToSharedPlan,
+  updateSharedPlanByCode,
 } from '../services/shareService'
-import type { DietPlan, SharedPlanEntry, ViewingPlan } from '../types/diet'
+import { removeFoodItem, upsertFoodItem } from '../lib/plan-food'
+import type { DietPlan, FoodLocation, SharedPlanEntry, ViewingPlan } from '../types/diet'
 import { useAuth } from './AuthContext'
 import { useDiet } from './DietContext'
 
@@ -33,6 +35,12 @@ interface SharedDietsContextValue {
   addByCode: (code: string) => Promise<void>
   removeSharedPlan: (code: string) => void
   shareOwnPlan: () => Promise<string>
+  saveSharedFood: (
+    code: string,
+    location: FoodLocation,
+    data: { name: string; quantity: string },
+  ) => Promise<void>
+  removeSharedFood: (code: string, location: FoodLocation) => Promise<void>
   addingCode: boolean
   sharingPlan: boolean
 }
@@ -262,6 +270,80 @@ export function SharedDietsProvider({ children }: { children: ReactNode }) {
     setActivePlanId(next)
   }, [ownPlan, sharedPlans, effectiveActivePlanId])
 
+  const saveSharedFood = useCallback(
+    async (
+      code: string,
+      location: FoodLocation,
+      data: { name: string; quantity: string },
+    ) => {
+      const upper = code.trim().toUpperCase()
+      const entry = sharedPlans.find((p) => p.code === upper)
+      if (!entry) return
+
+      const now = new Date().toISOString()
+      const updatedPlan: DietPlan = {
+        ...upsertFoodItem(entry.plan, location, data),
+        updatedAt: now,
+      }
+
+      setSharedPlansState((prev) => {
+        const next = prev.map((p) => (p.code === upper ? { ...p, plan: updatedPlan } : p))
+        persistLocal(next)
+        return next
+      })
+
+      if (user) {
+        void saveSharedAccess(user.uid, upper, updatedPlan, entry.addedAt)
+      }
+
+      try {
+        await updateSharedPlanByCode(upper, updatedPlan, user?.uid)
+        toast.success(
+          location.foodId ? 'Alimento atualizado' : 'Alimento adicionado',
+          'Sincronizado no plano compartilhado.',
+        )
+      } catch (e) {
+        toast.error('Erro ao sincronizar', formatFirebaseError(e))
+        throw e
+      }
+    },
+    [sharedPlans, user],
+  )
+
+  const removeSharedFood = useCallback(
+    async (code: string, location: FoodLocation) => {
+      if (!location.foodId) return
+      const upper = code.trim().toUpperCase()
+      const entry = sharedPlans.find((p) => p.code === upper)
+      if (!entry) return
+
+      const now = new Date().toISOString()
+      const updatedPlan: DietPlan = {
+        ...removeFoodItem(entry.plan, location),
+        updatedAt: now,
+      }
+
+      setSharedPlansState((prev) => {
+        const next = prev.map((p) => (p.code === upper ? { ...p, plan: updatedPlan } : p))
+        persistLocal(next)
+        return next
+      })
+
+      if (user) {
+        void saveSharedAccess(user.uid, upper, updatedPlan, entry.addedAt)
+      }
+
+      try {
+        await updateSharedPlanByCode(upper, updatedPlan, user?.uid)
+        toast.success('Alimento removido', 'Sincronizado no plano compartilhado.')
+      } catch (e) {
+        toast.error('Erro ao sincronizar', formatFirebaseError(e))
+        throw e
+      }
+    },
+    [sharedPlans, user],
+  )
+
   const value = useMemo(
     () => ({
       sharedPlans,
@@ -272,6 +354,8 @@ export function SharedDietsProvider({ children }: { children: ReactNode }) {
       addByCode,
       removeSharedPlan,
       shareOwnPlan,
+      saveSharedFood,
+      removeSharedFood,
       addingCode,
       sharingPlan,
     }),
@@ -283,6 +367,8 @@ export function SharedDietsProvider({ children }: { children: ReactNode }) {
       cycleActivePlan,
       removeSharedPlan,
       shareOwnPlan,
+      saveSharedFood,
+      removeSharedFood,
       addingCode,
       sharingPlan,
     ],

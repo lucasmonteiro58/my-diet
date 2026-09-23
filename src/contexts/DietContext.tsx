@@ -16,7 +16,11 @@ import {
   getCurrentUserDietPlan,
   saveDietPlanAsCurrent,
 } from '../services/dietService'
-import { syncSharedPlan } from '../services/shareService'
+import {
+  findExistingShareCode,
+  subscribeToSharedPlan,
+  syncSharedPlan,
+} from '../services/shareService'
 import { ensureFoodIds, removeFoodItem, upsertFoodItem } from '../lib/plan-food'
 import type { DietPlan, FoodLocation } from '../types/diet'
 import { useAuth } from './AuthContext'
@@ -115,13 +119,14 @@ export function DietProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const commitPlanChange = useCallback(
-    (updater: (current: DietPlan) => DietPlan) => {
+    (updater: (current: DietPlan) => DietPlan, isSynced = false) => {
       setPlanState((current) => {
         if (!current) return current
         const next = updater(current)
         persistLocal(next)
-        setCloudSynced(false)
-        clearCloudSyncMeta()
+        setCloudSynced(isSynced)
+        if (isSynced) persistCloudSyncMeta(next)
+        else clearCloudSyncMeta()
         setError(null)
         return next
       })
@@ -139,8 +144,11 @@ export function DietProvider({ children }: { children: ReactNode }) {
   const setPlanFromCloud = useCallback(
     (next: DietPlan) => {
       applyPlan(next, true)
+      if (user && canUseCloud()) {
+        void syncSharedPlan(user.uid, next)
+      }
     },
-    [applyPlan],
+    [applyPlan, user],
   )
 
   const clearPlan = useCallback(() => {
@@ -267,36 +275,126 @@ export function DietProvider({ children }: { children: ReactNode }) {
     [user, applyPlan, syncToCloud],
   )
 
+  // Monitor own share code to receive real-time edits from collaborators
+  const [ownShareCode, setOwnShareCode] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (user && canUseCloud()) {
+      void findExistingShareCode(user.uid).then((code) => {
+        if (!cancelled) setOwnShareCode(code)
+      })
+    }
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'my-diet-share-code-cache' && user && canUseCloud()) {
+        void findExistingShareCode(user.uid).then((code) => {
+          if (!cancelled) setOwnShareCode(code)
+        })
+      }
+    }
+    window.addEventListener('storage', handleStorage)
+
+    return () => {
+      cancelled = true
+      window.removeEventListener('storage', handleStorage)
+    }
+  }, [user])
+
+  // Live subscription: when a collaborator updates the shared plan, reflect changes on owner's plan
+  useEffect(() => {
+    if (!user || !canUseCloud() || !ownShareCode) return
+
+    const unsubscribe = subscribeToSharedPlan(ownShareCode, (remotePlan) => {
+      if (!remotePlan) return
+
+      setPlanState((current) => {
+        if (!current) return current
+        if (current.id === remotePlan.id && current.updatedAt === remotePlan.updatedAt) {
+          return current
+        }
+
+        const withIds = ensureFoodIds(remotePlan)
+        persistLocal(withIds)
+        setCloudSynced(true)
+        persistCloudSyncMeta(withIds)
+
+        void saveDietPlanAsCurrent(user.uid, withIds).catch(() => {})
+
+        toast.info(
+          'Plano atualizado',
+          'Alterações recebidas em tempo real do plano compartilhado.',
+        )
+        return withIds
+      })
+    })
+
+    return () => {
+      unsubscribe()
+    }
+  }, [user, ownShareCode])
+
   const saveFood = useCallback(
     async (location: FoodLocation, data: { name: string; quantity: string }) => {
+      const now = new Date().toISOString()
+      let updatedPlan: DietPlan | null = null
+
       commitPlanChange((current) => {
-        const next = upsertFoodItem(current, location, data)
-        if (user && canUseCloud()) {
-          void syncSharedPlan(user.uid, next)
+        const next: DietPlan = {
+          ...upsertFoodItem(current, location, data),
+          updatedAt: now,
         }
+        updatedPlan = next
         return next
-      })
+      }, !!(user && canUseCloud()))
+
+      if (updatedPlan && user && canUseCloud()) {
+        void saveDietPlanAsCurrent(user.uid, updatedPlan).catch(() => {})
+        void syncSharedPlan(user.uid, updatedPlan)
+        if (!ownShareCode) {
+          void findExistingShareCode(user.uid).then((c) => {
+            if (c) setOwnShareCode(c)
+          })
+        }
+      }
+
       toast.success(
         location.foodId ? 'Alimento atualizado' : 'Alimento adicionado',
-        'Alteração salva neste dispositivo.',
+        'Alteração salva e sincronizada.',
       )
     },
-    [commitPlanChange, user],
+    [commitPlanChange, user, ownShareCode],
   )
 
   const removeFood = useCallback(
     async (location: FoodLocation) => {
       if (!location.foodId) return
+      const now = new Date().toISOString()
+      let updatedPlan: DietPlan | null = null
+
       commitPlanChange((current) => {
-        const next = removeFoodItem(current, location)
-        if (user && canUseCloud()) {
-          void syncSharedPlan(user.uid, next)
+        const next: DietPlan = {
+          ...removeFoodItem(current, location),
+          updatedAt: now,
         }
+        updatedPlan = next
         return next
-      })
-      toast.success('Alimento removido', 'Alteração salva neste dispositivo.')
+      }, !!(user && canUseCloud()))
+
+      if (updatedPlan && user && canUseCloud()) {
+        void saveDietPlanAsCurrent(user.uid, updatedPlan).catch(() => {})
+        void syncSharedPlan(user.uid, updatedPlan)
+        if (!ownShareCode) {
+          void findExistingShareCode(user.uid).then((c) => {
+            if (c) setOwnShareCode(c)
+          })
+        }
+      }
+
+      toast.success('Alimento removido', 'Alteração salva e sincronizada.')
     },
-    [commitPlanChange, user],
+    [commitPlanChange, user, ownShareCode],
   )
 
   const savePlan = useCallback(async () => {

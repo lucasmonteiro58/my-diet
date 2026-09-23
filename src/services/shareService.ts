@@ -29,6 +29,7 @@ interface SharedPlanDoc {
   planData: DietPlan
   createdAt: string
   updatedAt?: string
+  lastUpdatedBy?: string
 }
 
 function generateCode(): string {
@@ -132,6 +133,30 @@ export async function syncSharedPlan(ownerId: string, plan: DietPlan): Promise<v
   } catch {
     // Non-critical — don't surface errors for background sync
   }
+}
+
+/** Updates a shared plan document by code (used when either party modifies the shared plan). */
+export async function updateSharedPlanByCode(
+  code: string,
+  plan: DietPlan,
+  updatedByUserId?: string,
+): Promise<void> {
+  if (!db || !isFirebaseConfigured) return
+
+  const upper = code.trim().toUpperCase()
+  const now = new Date().toISOString()
+  const stampedPlan: DietPlan = { ...plan, updatedAt: plan.updatedAt ?? now }
+
+  await setDoc(
+    doc(db, SHARED, upper),
+    stripUndefinedDeep({
+      planData: stampedPlan,
+      patientName: stampedPlan.patientName,
+      updatedAt: stampedPlan.updatedAt,
+      lastUpdatedBy: updatedByUserId,
+    }),
+    { merge: true },
+  )
 }
 
 /** Live updates for recipients viewing a shared plan by code. */

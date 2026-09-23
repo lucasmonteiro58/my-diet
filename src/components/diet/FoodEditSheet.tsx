@@ -1,5 +1,5 @@
 import { Loader2, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useDiet } from '../../contexts/DietContext'
 import type { FoodItem, FoodLocation } from '../../types/diet'
 import { Button } from '../ui/Button'
@@ -16,9 +16,11 @@ export interface FoodEditTarget {
 interface FoodEditSheetProps {
   target: FoodEditTarget | null
   onClose: () => void
+  onSave?: (location: FoodLocation, data: { name: string; quantity: string }) => Promise<void>
+  onRemove?: (location: FoodLocation) => Promise<void>
 }
 
-export function FoodEditSheet({ target, onClose }: FoodEditSheetProps) {
+export function FoodEditSheet({ target, onClose, onSave, onRemove }: FoodEditSheetProps) {
   const { saveFood, removeFood } = useDiet()
   const [name, setName] = useState('')
   const [quantity, setQuantity] = useState('')
@@ -27,20 +29,26 @@ export function FoodEditSheet({ target, onClose }: FoodEditSheetProps) {
 
   const isNew = !target?.food
 
-  useEffect(() => {
-    if (!target) return
-    setName(target.food?.name ?? '')
-    setQuantity(target.food?.quantity ?? '')
+  const [prevTarget, setPrevTarget] = useState<FoodEditTarget | null>(null)
+
+  if (target !== prevTarget) {
+    setPrevTarget(target)
+    setName(target?.food?.name ?? '')
+    setQuantity(target?.food?.quantity ?? '')
     setError(null)
     setBusy(false)
-  }, [target])
+  }
 
   const handleSave = async () => {
     if (!target) return
     setBusy(true)
     setError(null)
     try {
-      await saveFood(target.location, { name, quantity })
+      if (onSave) {
+        await onSave(target.location, { name, quantity })
+      } else {
+        await saveFood(target.location, { name, quantity })
+      }
       onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Não foi possível salvar.')
@@ -54,7 +62,11 @@ export function FoodEditSheet({ target, onClose }: FoodEditSheetProps) {
     setBusy(true)
     setError(null)
     try {
-      await removeFood(target.location)
+      if (onRemove) {
+        await onRemove(target.location)
+      } else {
+        await removeFood(target.location)
+      }
       onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Não foi possível remover.')
